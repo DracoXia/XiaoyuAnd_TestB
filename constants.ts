@@ -1,8 +1,9 @@
-// Default peaceful nature sound (Wind and gentle ambience)
-export const DEFAULT_AUDIO_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=forest-wind-and-birds-6881.mp3";
+
+// Default peaceful nature sound (Updated to user uploaded ogg)
+export const DEFAULT_AUDIO_URL = "audio.ogg";
 
 export const TEXT_CONTENT = {
-  landing: "推门，见山色。",
+  landing: "推门，见山色",
   immersion: [
     "庭院无声",
     "暖阳在白瓷杯盏间",

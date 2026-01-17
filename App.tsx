@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Settings, X, ChevronDown, Leaf } from 'lucide-react';
+import { Volume2, VolumeX, X, ChevronDown, Leaf } from 'lucide-react';
 import { AppPhase } from './types';
 import { TEXT_CONTENT, DEFAULT_AUDIO_URL, IMMERSION_DURATION } from './constants';
 import DynamicBackground from './components/DynamicBackground';
@@ -10,12 +10,8 @@ const App: React.FC = () => {
   const [phase, setPhase] = useState<AppPhase>(AppPhase.LANDING);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [audioUrl, setAudioUrl] = useState(DEFAULT_AUDIO_URL);
+  const [audioUrl] = useState(DEFAULT_AUDIO_URL);
   
-  // Settings State
-  const [showSettings, setShowSettings] = useState(false);
-  const [tempAudioUrl, setTempAudioUrl] = useState(DEFAULT_AUDIO_URL);
-
   // Safety Modal State
   const [showSafetyModal, setShowSafetyModal] = useState(false);
 
@@ -32,7 +28,7 @@ const App: React.FC = () => {
     setIsPlaying(true);
     
     // Start the timer for the session
-    timerRef.current = setTimeout(() => {
+    timerRef.current = window.setTimeout(() => {
       handleSessionEnd();
     }, IMMERSION_DURATION);
   };
@@ -52,7 +48,6 @@ const App: React.FC = () => {
 
     // Close any open modals
     setShowSafetyModal(false);
-    setShowSettings(false);
     
     setPhase(AppPhase.ENDING);
   };
@@ -61,11 +56,6 @@ const App: React.FC = () => {
     setIsPlaying((prev) => !prev);
     // Reset volume if toggling back on
     if (!isPlaying && volume < 0.1) setVolume(1);
-  };
-
-  const updateAudioUrl = () => {
-    setAudioUrl(tempAudioUrl);
-    setShowSettings(false);
   };
 
   // --- Render Helpers ---
@@ -255,36 +245,6 @@ const App: React.FC = () => {
     </div>
   );
 
-  // Settings Modal
-  const renderSettings = () => {
-    if (!showSettings) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-        <div className="bg-white p-6 rounded-md shadow-xl w-[90%] max-w-md">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-serif text-ink-gray">音频设置</h3>
-            <button onClick={() => setShowSettings(false)}><X className="w-5 h-5 text-ink-light" /></button>
-          </div>
-          <div className="space-y-4">
-            <label className="block text-xs text-ink-light uppercase tracking-wide">音频链接 (MP3/OGG)</label>
-            <input 
-              type="text" 
-              value={tempAudioUrl}
-              onChange={(e) => setTempAudioUrl(e.target.value)}
-              className="w-full p-2 border border-zen-gray text-sm text-ink-gray focus:outline-none focus:border-ink-gray rounded-sm bg-zen-white"
-            />
-            <button 
-              onClick={updateAudioUrl}
-              className="w-full py-2 bg-ink-gray text-white text-sm tracking-wide rounded-sm"
-            >
-              更新音频
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div 
       className={`relative w-full h-[100dvh] overflow-hidden select-none transition-colors duration-[1500ms] ease-in-out ${
@@ -302,9 +262,6 @@ const App: React.FC = () => {
       <div className="absolute top-6 right-6 z-40 flex space-x-4 opacity-60 hover:opacity-100 transition-opacity">
         {phase !== AppPhase.ENDING && (
             <>
-                <button onClick={() => setShowSettings(true)} className="p-2 transition-transform hover:rotate-90">
-                <Settings className={`w-5 h-5 ${phase === AppPhase.LANDING ? 'text-white' : 'text-ink-gray'}`} />
-                </button>
                 <button onClick={toggleAudio} className="p-2">
                 {isPlaying ? (
                     <Volume2 className={`w-5 h-5 ${phase === AppPhase.LANDING ? 'text-white' : 'text-ink-gray'}`} />
@@ -322,7 +279,6 @@ const App: React.FC = () => {
       {phase === AppPhase.ENDING && renderEnding()}
 
       {/* Modals */}
-      {renderSettings()}
       {renderSafetyModal()}
     </div>
   );
