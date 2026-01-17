@@ -1,6 +1,6 @@
 
-// Default peaceful nature sound (Updated to user uploaded ogg)
-export const DEFAULT_AUDIO_URL = "audio.ogg";
+// Default peaceful nature sound (Updated to user requested ShanCha.ogg)
+export const DEFAULT_AUDIO_URL = "ShanCha.ogg";
 
 export const TEXT_CONTENT = {
   landing: "推门，见山色",

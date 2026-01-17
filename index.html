@@ -1,19 +1,21 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>白茶 White Tea</title>
+    <title>小屿和香 - 山茶</title>
+    <!-- Use Tailwind via CDN for simplicity, but in a real build it's handled by PostCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
+      window.tailwind.config = {
         theme: {
           extend: {
             colors: {
               'zen-white': '#F9F9F7',
-              'zen-apricot': '#F2E6D8', // Light apricot hint
-              'zen-gray': '#E0DFDB',    // Pale rock grey
-              'ink-gray': '#5E5A55',    // Soft ink text
+              'zen-apricot': '#F2E6D8',
+              'zen-gray': '#E0DFDB',
+              'ink-gray': '#5E5A55',
               'ink-light': '#9CA3AF',
             },
             fontFamily: {
@@ -23,7 +25,6 @@
               'float': 'float 10s ease-in-out infinite',
               'mist': 'mist 20s linear infinite',
               'fade-in': 'fadeIn 2s ease-out forwards',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               float: {
@@ -47,33 +48,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
       body {
-        background-color: #F9F9F7;
+        background-color: #000000;
         margin: 0;
-        overflow: hidden; /* Prevent scrolling during immersion */
+        overflow: hidden;
         -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
       }
-      /* Custom Scrollbar for expanded content */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

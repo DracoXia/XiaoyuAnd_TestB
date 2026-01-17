@@ -1,59 +1,77 @@
+
 import React, { useEffect, useRef } from 'react';
 
 interface AudioPlayerProps {
   url: string;
   isPlaying: boolean;
-  volume: number; // 0 to 1
+  volume: number;
+  onLoadingStatusChange?: (isLoading: boolean) => void;
+  onError?: () => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ url, isPlaying, volume }) => {
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
+  url, 
+  isPlaying, 
+  volume, 
+  onLoadingStatusChange,
+  onError 
+}) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!audioRef.current) return;
-    
-    // Handle Play/Pause
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (isPlaying) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.warn("Auto-play prevented:", error);
-        });
-      }
+      // Small delay to ensure browser allows play after interaction
+      const playAudio = async () => {
+        try {
+          if (audio.paused) {
+            await audio.play();
+          }
+        } catch (error) {
+          console.warn("Autoplay was prevented or resource missing. Waiting for user interaction or fix.");
+          if (onError) onError();
+        }
+      };
+      playAudio();
     } else {
-      audioRef.current.pause();
+      audio.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, url]);
 
   useEffect(() => {
-    // Handle Volume Fading smoothly
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
 
-  useEffect(() => {
-    // Handle URL Change
-    if (audioRef.current) {
-      const wasPlaying = !audioRef.current.paused;
-      audioRef.current.src = url;
-      audioRef.current.load();
-      if (wasPlaying && isPlaying) {
-         audioRef.current.play().catch(() => {});
-      }
-    }
-  }, [url]);
+  const handleCanPlay = () => {
+    if (onLoadingStatusChange) onLoadingStatusChange(false);
+  };
+
+  const handleWaiting = () => {
+    if (onLoadingStatusChange) onLoadingStatusChange(true);
+  };
+
+  const handleAudioError = () => {
+    // If the file is missing, we still want the app to function visually
+    console.error(`Audio Resource Not Found at: ${url}. App will remain silent.`);
+    if (onError) onError();
+    if (onLoadingStatusChange) onLoadingStatusChange(false);
+  };
 
   return (
     <audio 
       ref={audioRef} 
+      src={url}
       loop 
       preload="auto"
+      onCanPlayThrough={handleCanPlay}
+      onWaiting={handleWaiting}
+      onError={handleAudioError}
       className="hidden"
-    >
-      <source src={url} type="audio/mpeg" />
-      <source src={url} type="audio/ogg" />
-    </audio>
+    />
   );
 };
 
