@@ -1,5 +1,6 @@
 // 使用 jsDelivr CDN 加载音频，确保全球访问稳定性
 export const DEFAULT_AUDIO_URL = "https://cdn.jsdelivr.net/gh/DracoXia/XiaoyuAnd/ShanCha.ogg";
+export const TRANSITION_AUDIO_URL = "https://cdn.jsdelivr.net/gh/DracoXia/XiaoyuAnd/female-sigh-450446.mp3";
 
 export const TEXT_CONTENT = {
   landing: "推门，见山色",
@@ -66,5 +67,5 @@ export const TEXT_CONTENT = {
   }
 };
 
-// 1 minute in milliseconds for immersion time
-export const IMMERSION_DURATION = 1 * 60 * 1000;
+// 10 minutes in milliseconds for immersion time
+export const IMMERSION_DURATION = 10 * 60 * 1000;
