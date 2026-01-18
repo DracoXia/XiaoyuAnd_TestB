@@ -171,7 +171,7 @@ const App: React.FC = () => {
         className={`absolute inset-0 z-0 transition-opacity duration-[2500ms] bg-cover bg-center bg-no-repeat ${
           phase !== AppPhase.LANDING ? 'opacity-100' : 'opacity-0'
         }`}
-        style={{ backgroundImage: "url('https://gitee.com/wx_4c58684d00/c_137-studio/raw/master/BG%20(1).png')" }}
+        style={{ backgroundImage: "url('https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/BG%20%281%29.png')" }}
       >
         <div className="absolute inset-0 bg-black/30" />
       </div>

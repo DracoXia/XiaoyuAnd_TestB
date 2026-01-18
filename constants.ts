@@ -1,5 +1,5 @@
-// 使用 Gitee 仓库加载音频，确保资源的一致性
-export const DEFAULT_AUDIO_URL = "https://gitee.com/wx_4c58684d00/c_137-studio/raw/master/ShanCha.mp3";
+// 使用腾讯云 COS 加载音频资源
+export const DEFAULT_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/ShanCha_Mp3.mp3";
 export const TRANSITION_AUDIO_URL = "https://cdn.jsdelivr.net/gh/DracoXia/XiaoyuAnd/female-sigh-450446.mp3";
 
 export const TEXT_CONTENT = {
