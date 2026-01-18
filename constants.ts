@@ -1,6 +1,6 @@
 // 使用腾讯云 COS 加载音频资源
 export const DEFAULT_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/ShanCha_Mp3.mp3";
-export const TRANSITION_AUDIO_URL = "https://cdn.jsdelivr.net/gh/DracoXia/XiaoyuAnd/female-sigh-450446.mp3";
+export const TRANSITION_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/female-sigh-450446.mp3";
 
 export const TEXT_CONTENT = {
   landing: "推门，见山色",
