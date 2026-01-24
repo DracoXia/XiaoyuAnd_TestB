@@ -1,32 +1,65 @@
-import React from 'react';
 
-const DynamicBackground: React.FC = () => {
+import React, { useMemo } from 'react';
+
+interface DynamicBackgroundProps {
+  theme?: string; // 'warm' | 'rain' | 'wind'
+}
+
+const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ theme = 'warm' }) => {
+  
+  const colors = useMemo(() => {
+    switch (theme) {
+      case 'rain':
+        return {
+          blob1: 'bg-blue-300/20',
+          blob2: 'bg-slate-400/20',
+          blob3: 'bg-indigo-300/20',
+          blob4: 'bg-sky-200/20',
+        };
+      case 'wind':
+        return {
+          blob1: 'bg-emerald-300/20',
+          blob2: 'bg-teal-200/20',
+          blob3: 'bg-lime-200/20',
+          blob4: 'bg-green-300/20',
+        };
+      case 'warm':
+      default:
+        return {
+          blob1: 'bg-dopamine-orange/20',
+          blob2: 'bg-dopamine-pink/20',
+          blob3: 'bg-dopamine-blue/10',
+          blob4: 'bg-dopamine-yellow/20',
+        };
+    }
+  }, [theme]);
+
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-white/50">
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-white/50 transition-colors duration-1000">
       
       {/* Base Background Image - Blurred for Atmosphere */}
       <div className="absolute inset-0 z-0">
         <img 
             src="https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/BG%20%281%29.png" 
             alt="Atmosphere" 
-            className="w-full h-full object-cover filter blur-[80px] opacity-40 scale-110 mix-blend-multiply transition-opacity duration-1000"
+            className={`w-full h-full object-cover filter blur-[80px] opacity-40 scale-110 mix-blend-multiply transition-all duration-1000 ${theme === 'rain' ? 'grayscale brightness-90' : 'grayscale-0'}`}
         />
       </div>
 
       {/* Dopamine Blobs - Layered on top for color variation */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-50 z-10">
         
-        {/* Warm Orange Blob */}
-        <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-dopamine-orange/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+        {/* Blob 1 */}
+        <div className={`absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full mix-blend-multiply filter blur-3xl animate-blob transition-colors duration-1000 ${colors.blob1}`}></div>
         
-        {/* Soft Pink Blob */}
-        <div className="absolute top-[-10%] right-[10%] w-[400px] h-[400px] bg-dopamine-pink/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+        {/* Blob 2 */}
+        <div className={`absolute top-[-10%] right-[10%] w-[400px] h-[400px] rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 transition-colors duration-1000 ${colors.blob2}`}></div>
         
-        {/* Calming Blue/Green Blob */}
-        <div className="absolute bottom-[-20%] left-[20%] w-[600px] h-[600px] bg-dopamine-blue/10 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+        {/* Blob 3 */}
+        <div className={`absolute bottom-[-20%] left-[20%] w-[600px] h-[600px] rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000 transition-colors duration-1000 ${colors.blob3}`}></div>
         
-        {/* Yellow Accent */}
-        <div className="absolute bottom-[20%] right-[20%] w-[300px] h-[300px] bg-dopamine-yellow/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-3000"></div>
+        {/* Blob 4 */}
+        <div className={`absolute bottom-[20%] right-[20%] w-[300px] h-[300px] rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-3000 transition-colors duration-1000 ${colors.blob4}`}></div>
 
       </div>
       

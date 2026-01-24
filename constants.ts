@@ -1,10 +1,70 @@
 
+
+
 // 资源配置
 export const DEFAULT_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/ShanCha_Mp3.mp3"; 
 export const TRANSITION_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/female-sigh-450446.mp3";
 export const POUR_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/03/24/audio_097f7d389a.mp3"; // Pouring water sound
 
 export const TEA_GREEN_COLOR = "#9E9D24";
+
+// --- NEW: Fragrance Box Options (O2O) ---
+export const FRAGRANCE_LIST = [
+    {
+        id: 'camellia',
+        name: '山茶 · 见山',
+        desc: '温润白茶，清旷山色',
+        status: 'owned', // User has this
+        color: 'bg-orange-100 text-dopamine-orange',
+        gradient: 'from-orange-50 to-amber-50',
+        audioUrl: DEFAULT_AUDIO_URL
+    },
+    {
+        id: 'cedar',
+        name: '雪松 · 听雪',
+        desc: '苍古木韵，沉静定心',
+        status: 'locked', // Needs unlock
+        color: 'bg-stone-100 text-stone-600',
+        gradient: 'from-stone-50 to-gray-50',
+        audioUrl: '' // Mock
+    },
+    {
+        id: 'lily',
+        name: '百合 · 枕月',
+        desc: '幽谷花香，安神助眠',
+        status: 'locked',
+        color: 'bg-purple-100 text-purple-600',
+        gradient: 'from-purple-50 to-indigo-50',
+        audioUrl: '' // Mock
+    }
+];
+
+// --- NEW: Ambiance Tuner Options (Immersion) ---
+export const AMBIANCE_MODES = [
+    {
+        id: 'default',
+        label: '本味',
+        icon: 'tea', // mapped in component
+        audioUrl: DEFAULT_AUDIO_URL, // Base track
+        theme: 'warm' // Warm Orange/Yellow
+    },
+    {
+        id: 'rain',
+        label: '听雨',
+        icon: 'rain',
+        // Placeholder to prevent 404s.
+        audioUrl: DEFAULT_AUDIO_URL, 
+        theme: 'rain' // Cool Blue/Gray
+    },
+    {
+        id: 'wind',
+        label: '晚风',
+        icon: 'wind',
+        // Placeholder to prevent 404s.
+        audioUrl: DEFAULT_AUDIO_URL,
+        theme: 'wind' // Nature Green/Teal
+    }
+];
 
 export const TEXT_CONTENT = {
   ritual: {

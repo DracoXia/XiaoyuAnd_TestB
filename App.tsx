@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, Heart, Sparkles, Quote } from 'lucide-react';
+import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, Heart, Sparkles, Quote, Sun, CloudRain, Wind } from 'lucide-react';
 import { AppPhase } from './types';
-import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS } from './constants';
+import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST } from './constants';
 import DynamicBackground from './components/DynamicBackground';
 import AudioPlayer from './components/AudioPlayer';
 import Ritual from './components/Ritual';
@@ -11,11 +11,22 @@ import { GeminiService, TreeholeResult } from './components/GeminiService';
 
 const App: React.FC = () => {
   const [phase, setPhase] = useState<AppPhase>(AppPhase.LANDING);
+  
+  // Transition Control States
+  const [showRitualLayer, setShowRitualLayer] = useState(true); // Is Ritual component mounted?
+  const [fadeRitual, setFadeRitual] = useState(false); // Should Ritual component fade opacity to 0?
+
+  // Audio State
+  const [currentAudioUrl, setCurrentAudioUrl] = useState(DEFAULT_AUDIO_URL);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  
+  // Fragrance & Ambiance State
+  // Default to the first owned fragrance
+  const [activeFragranceId, setActiveFragranceId] = useState(FRAGRANCE_LIST[0].id);
+  const [activeAmbianceId, setActiveAmbianceId] = useState('default');
   
   // Ref to track volume in closures (fixes stale closure bug in timers)
   const volumeRef = useRef(1);
@@ -45,7 +56,7 @@ const App: React.FC = () => {
 
   // Pre-fetch Sign when entering Ritual
   useEffect(() => {
-    if (phase === AppPhase.RITUAL) {
+    if (phase === AppPhase.RITUAL || phase === AppPhase.LANDING) {
         GeminiService.getDailySign().then(setDailySign);
     }
   }, [phase]);
@@ -60,8 +71,19 @@ const App: React.FC = () => {
   // Triggered instantly when user TOUCHES the screen in Ritual (User Interaction Context)
   const primeAudio = () => {
       // Start playing silently immediately to unlock audio context
-      setVolume(0);
-      setIsPlaying(true);
+      if (!isPlaying) {
+          setVolume(0);
+          setIsPlaying(true);
+      }
+  };
+
+  const handleFragranceChange = (id: string) => {
+      setActiveFragranceId(id);
+      // Optional: Change audio URL based on fragrance if defined
+      const frag = FRAGRANCE_LIST.find(f => f.id === id);
+      if (frag && frag.audioUrl) {
+          setCurrentAudioUrl(frag.audioUrl);
+      }
   };
 
   const handleRitualComplete = () => {
@@ -70,10 +92,18 @@ const App: React.FC = () => {
     transitionAudio.volume = 0.9;
     transitionAudio.play().catch(console.warn);
 
-    // 2. Transition
+    // 2. Transition Phase Change
+    // Switch phase to IMMERSION immediately so it renders *underneath* the Ritual layer
     setPhase(AppPhase.IMMERSION);
     
-    // 3. Fade in the background music (which was primed at volume 0)
+    // 3. Trigger Fade Out of Ritual Layer (Visual Transition)
+    // The Ritual layer is still mounted because showRitualLayer is true
+    setFadeRitual(true);
+
+    // 4. Fade in the background music (which was primed at volume 0)
+    setVolume(0); 
+    if (!isPlaying) setIsPlaying(true);
+
     let currentVol = 0;
     const fadeInterval = setInterval(() => {
         currentVol += 0.05;
@@ -83,6 +113,11 @@ const App: React.FC = () => {
         }
         setVolume(currentVol);
     }, 100);
+
+    // 5. Unmount Ritual layer after transition finishes
+    setTimeout(() => {
+        setShowRitualLayer(false);
+    }, 3000); // 3 seconds fade out duration
 
     startImmersionTimer();
   };
@@ -113,8 +148,6 @@ const App: React.FC = () => {
       }
       setVolume(currentVol);
     }, 100); 
-
-    setShowSafetyModal(false);
     
     // Delay phase change slightly to allow fade to start perceiving
     setTimeout(() => {
@@ -130,7 +163,6 @@ const App: React.FC = () => {
           clearTimeout(timerRef.current);
           timerRef.current = null;
       }
-      setShowSafetyModal(false);
       setPhase(AppPhase.TREEHOLE);
       // NOTE: We do NOT stop isPlaying here
   };
@@ -159,7 +191,8 @@ const App: React.FC = () => {
       setIsGenerating(false);
   };
 
-  const toggleAudio = () => {
+  const toggleAudio = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent toggling tuner
     setIsPlaying((prev) => !prev);
     if (!isPlaying && volume < 0.1) setVolume(1);
   };
@@ -174,19 +207,41 @@ const App: React.FC = () => {
         setSelectedContext("");
         setUserText("");
         setAiResult(null);
+        setActiveAmbianceId('default');
+        // Reset fragrance to default or keep current? Let's keep current.
+        setCurrentAudioUrl(DEFAULT_AUDIO_URL);
+        
+        // Reset Ritual Transition States
+        setShowRitualLayer(true);
+        setFadeRitual(false);
+        
         // Navigate to Ritual
         setPhase(AppPhase.RITUAL);
     }
   };
 
+  const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
+      e.stopPropagation();
+      const mode = AMBIANCE_MODES.find(m => m.id === modeId);
+      if (mode) {
+          setActiveAmbianceId(modeId);
+          // Only change if different to avoid reload
+          if (currentAudioUrl !== mode.audioUrl) {
+              setCurrentAudioUrl(mode.audioUrl);
+          }
+      }
+  };
+
+  // Derive current theme from active ambiance
+  const currentTheme = AMBIANCE_MODES.find(m => m.id === activeAmbianceId)?.theme || 'warm';
+
   // --- RENDERERS ---
 
-  const renderLanding = () => (
-      <Ritual onComplete={handleRitualComplete} onPrimeAudio={primeAudio} />
-  );
-
   const renderImmersion = () => (
-    <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar animate-fade-in flex flex-col font-sans">
+    <div 
+        className="absolute inset-0 z-30 overflow-y-auto no-scrollbar animate-fade-in flex flex-col font-sans cursor-pointer"
+        onClick={() => {}} // Cleaned up toggle
+    >
       {isAudioLoading && isPlaying && !audioError && volume > 0 && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/30 backdrop-blur-md pointer-events-none animate-fade-in">
           <Loader2 className="w-8 h-8 text-dopamine-orange animate-spin mb-4" />
@@ -194,7 +249,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-grow flex flex-col justify-center items-center relative p-8 pt-[12vh] min-h-[90vh]">
+      {/* Main Poem Area */}
+      {/* Revised Padding: pt-32 (enough clearance from top controls/heart) and pb-48 (clearance from bottom ambiance tuner) */}
+      <div className="flex-grow flex flex-col justify-center items-center relative p-8 pt-32 pb-48 min-h-[85vh]">
         <div className="max-w-md w-full text-center flex flex-col items-center mix-blend-multiply">
           {(TEXT_CONTENT.immersion as string[]).map((line, idx) => {
             if (line === "") return <div key={idx} className="h-8 md:h-10" />; 
@@ -211,19 +268,34 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="pb-16 flex justify-center w-full opacity-0 animate-fade-in" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
-         <button 
-           onClick={() => setShowSafetyModal(true)}
-           className="flex flex-col items-center space-y-3 group cursor-pointer transition-opacity duration-700 opacity-60 hover:opacity-100"
-         >
-           <div className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-md flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-             <Leaf strokeWidth={2} className="w-5 h-5 text-dopamine-green group-hover:rotate-12 transition-transform duration-500" />
-           </div>
-           <span className="text-[10px] font-bold text-ink-light tracking-[0.2em] uppercase bg-white/40 px-3 py-1 rounded-full backdrop-blur-sm">
-             {TEXT_CONTENT.product.entryLabel}
-           </span>
-         </button>
+      {/* Ambiance Tuner (Moved to Bottom) */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
+          <div 
+            className="bg-white/40 backdrop-blur-xl hover:bg-white/60 transition-all duration-500 p-1.5 rounded-full shadow-sm border border-white/20 flex items-center gap-2 scale-90 md:scale-100 pointer-events-auto"
+            onClick={(e) => e.stopPropagation()} 
+          >
+              {AMBIANCE_MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={(e) => handleAmbianceChange(e, mode.id)}
+                    className={`
+                        w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 relative group
+                        ${activeAmbianceId === mode.id ? 'bg-ink-gray text-white shadow-md' : 'bg-transparent text-ink-gray/40 hover:text-ink-gray hover:bg-white/30'}
+                    `}
+                  >
+                      {mode.icon === 'tea' && <Leaf className="w-5 h-5" strokeWidth={activeAmbianceId === mode.id ? 2 : 1.5} />}
+                      {mode.icon === 'rain' && <CloudRain className="w-5 h-5" strokeWidth={activeAmbianceId === mode.id ? 2 : 1.5} />}
+                      {mode.icon === 'wind' && <Wind className="w-5 h-5" strokeWidth={activeAmbianceId === mode.id ? 2 : 1.5} />}
+                      
+                      {/* Tooltip */}
+                      <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                          {mode.label}
+                      </span>
+                  </button>
+              ))}
+          </div>
       </div>
+
     </div>
   );
 
@@ -399,15 +471,15 @@ const App: React.FC = () => {
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-[#F5F5F7]">
         
-      {/* Dynamic Background is now ALWAYS visible and light */}
+      {/* Dynamic Background is now ALWAYS visible and light (z-10) */}
       <div className={`absolute inset-0 z-10 transition-opacity duration-1000 opacity-100`}>
-        <DynamicBackground />
+        <DynamicBackground theme={currentTheme} />
       </div>
 
       <AudioPlayer 
-        url={DEFAULT_AUDIO_URL} 
+        url={currentAudioUrl} 
         // Allow playing in RITUAL phase if explicitly triggered (for preloading)
-        isPlaying={isPlaying && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)} 
+        isPlaying={isPlaying && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE || phase === AppPhase.LANDING)} 
         volume={volume} 
         onLoadingStatusChange={setIsAudioLoading}
         onError={() => setAudioError(true)}
@@ -435,44 +507,38 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content Switcher */}
-      {(phase === AppPhase.LANDING || phase === AppPhase.RITUAL) && renderLanding()}
+      {/* 
+          Main Content Switcher 
+      */}
+
+      {/* 
+          LAYER 1: IMMERSION (The Destination)
+          Rendered when phase is IMMERSION.
+          Sits at z-30.
+          Initially hidden by Ritual Layer (z-50).
+      */}
       {phase === AppPhase.IMMERSION && renderImmersion()}
+
+      {/* 
+          LAYER 2: RITUAL (The Entry & Transition Overlay)
+          Rendered if phase is LANDING/RITUAL OR if showRitualLayer is true (during transition).
+          Sits at z-50 (on top).
+          Fades out using CSS opacity when fadeRitual is true.
+      */}
+      {showRitualLayer && (
+          <div className={`absolute inset-0 z-50 transition-opacity duration-[3000ms] ease-in-out ${fadeRitual ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+              <Ritual 
+                onComplete={handleRitualComplete} 
+                onPrimeAudio={primeAudio} 
+                activeFragranceId={activeFragranceId}
+                onFragranceChange={handleFragranceChange}
+              />
+          </div>
+      )}
+
+      {/* Other Phases */}
       {phase === AppPhase.TREEHOLE && renderTreehole()}
       {phase === AppPhase.DASHBOARD && <Dashboard onScenarioClick={handleDashboardScenarioClick} />}
-
-      {/* Product Modal */}
-      {showSafetyModal && (
-        <>
-          <div 
-              className="fixed inset-0 bg-ink-gray/20 backdrop-blur-sm z-[60] animate-fade-in"
-              onClick={() => setShowSafetyModal(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 z-[70] bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] p-12 transform animate-fade-in max-h-[85vh] overflow-y-auto no-scrollbar font-sans border-t border-white/60">
-            <div className="flex justify-end mb-4">
-              <button onClick={() => setShowSafetyModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-6 h-6 text-ink-gray" /></button>
-            </div>
-            <h3 className="text-center font-bold text-2xl text-ink-gray mb-10 flex items-center justify-center gap-2">
-              <Leaf className="w-6 h-6 text-dopamine-green" />
-              {TEXT_CONTENT.product.modal.title}
-            </h3>
-            <p className="font-medium text-base text-ink-gray leading-loose mb-10 text-justify opacity-80">
-              {TEXT_CONTENT.product.modal.origin.part1} <b className="text-dopamine-green bg-green-50 px-1 rounded">{TEXT_CONTENT.product.modal.origin.highlight}</b> {TEXT_CONTENT.product.modal.origin.part2}
-            </p>
-            <div className="space-y-4 mb-14">
-              {TEXT_CONTENT.product.modal.ingredients.list.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-gray-50/80 p-5 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100">
-                  <span className="text-base font-bold text-ink-gray">{item.name}</span>
-                  <span className="text-xs font-medium text-ink-light tracking-wide bg-white px-2 py-1 rounded-md shadow-sm">{item.desc}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-center text-ink-light font-medium tracking-wide opacity-50">
-              {TEXT_CONTENT.product.modal.footer}
-            </p>
-          </div>
-        </>
-      )}
     </div>
   );
 };
