@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Leaf, Flame, Moon, Snowflake, ArrowRight, Heart, Sparkles, Lock } from 'lucide-react';
-import { DASHBOARD_DATA } from '../constants';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Leaf, Flame, Moon, Snowflake, ArrowRight, Heart, Sparkles, Lock, X, Calendar, TrendingUp } from 'lucide-react';
+import { DASHBOARD_DATA, MOOD_OPTIONS, CONTEXT_OPTIONS } from '../constants';
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
+}
+
+// Helper to generate mock data
+interface MoodRecord {
+    date: string;
+    day: number;
+    moodId: string;
+    context: string;
+    isToday: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
@@ -11,6 +21,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
     const [timeGreeting, setTimeGreeting] = useState("安好");
     const [userCounts, setUserCounts] = useState<Record<string, number>>({});
     const [hasNotification, setHasNotification] = useState(true);
+    const [showMoodMap, setShowMoodMap] = useState(false);
 
     useEffect(() => {
         const hour = new Date().getHours();
@@ -24,6 +35,46 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
         });
         setUserCounts(counts);
     }, []);
+
+    // Generate Mock Mood History (Last 30 days)
+    const moodHistory = useMemo(() => {
+        const history: MoodRecord[] = [];
+        const today = new Date();
+        
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            
+            // Randomly assign a mood (70% chance to have a record)
+            const hasRecord = Math.random() > 0.3 || i === 0; // Today always has record
+            
+            if (hasRecord) {
+                const randomMood = MOOD_OPTIONS[Math.floor(Math.random() * MOOD_OPTIONS.length)];
+                const randomContext = CONTEXT_OPTIONS[Math.floor(Math.random() * CONTEXT_OPTIONS.length)];
+                
+                history.push({
+                    date: `${date.getMonth() + 1}.${date.getDate()}`,
+                    day: date.getDate(),
+                    moodId: randomMood.id,
+                    context: randomContext,
+                    isToday: i === 0
+                });
+            } else {
+                history.push({
+                    date: `${date.getMonth() + 1}.${date.getDate()}`,
+                    day: date.getDate(),
+                    moodId: 'empty',
+                    context: '',
+                    isToday: false
+                });
+            }
+        }
+        return history;
+    }, []);
+
+    const recentRecords = useMemo(() => {
+        return moodHistory.filter(h => h.moodId !== 'empty').reverse().slice(0, 4);
+    }, [moodHistory]);
 
     const handleCardClick = (card: any) => {
         if (card.status === 'locked') {
@@ -42,14 +93,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
     };
 
     const handleHeartClick = () => {
-        if (hasNotification) {
-            setHasNotification(false);
-            setActiveAlert("已收取今日能量 ✨");
-            setTimeout(() => setActiveAlert(null), 3000);
-        } else {
-             setActiveAlert("能量满满，明天再来哦 💖");
-             setTimeout(() => setActiveAlert(null), 2000);
-        }
+        setHasNotification(false);
+        setShowMoodMap(true);
     };
 
     const getIcon = (type: string, className: string) => {
@@ -60,6 +105,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
             case 'snowflake': return <Snowflake className={className} strokeWidth={2.5} />;
             default: return <Leaf className={className} strokeWidth={2.5} />;
         }
+    };
+
+    const getMoodConfig = (id: string) => {
+        return MOOD_OPTIONS.find(m => m.id === id) || { icon: '', style: 'bg-gray-100', label: '' };
     };
 
     return (
@@ -74,13 +123,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                 </div>
                 <button 
                     onClick={handleHeartClick}
-                    className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95"
+                    className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
                 >
                     <div className="relative">
                          {hasNotification && (
                             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-dopamine-pink rounded-full border-2 border-white animate-pulse"></div>
                          )}
-                         <Heart className={`w-6 h-6 ${hasNotification ? 'text-ink-gray' : 'text-dopamine-pink fill-dopamine-pink'}`} strokeWidth={2} />
+                         <Heart className={`w-6 h-6 transition-colors ${hasNotification ? 'text-ink-gray' : 'text-dopamine-pink fill-dopamine-pink'}`} strokeWidth={2} />
                     </div>
                 </button>
             </div>
@@ -183,6 +232,106 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                     <Sparkles className="w-4 h-4 text-dopamine-yellow" />
                     <span className="text-sm font-bold tracking-wide whitespace-nowrap">{activeAlert}</span>
                 </div>
+            )}
+
+            {/* Mood Map Modal */}
+            {showMoodMap && (
+                <>
+                    <div 
+                        className="fixed inset-0 bg-ink-gray/20 backdrop-blur-sm z-[60] animate-fade-in"
+                        onClick={() => setShowMoodMap(false)}
+                    />
+                    <div className="fixed bottom-0 left-0 right-0 z-[70] bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] p-8 transform animate-fade-in max-h-[85vh] overflow-y-auto no-scrollbar border-t border-white/60">
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-8">
+                             <div>
+                                <h3 className="font-bold text-2xl text-ink-gray flex items-center gap-2">
+                                    <Calendar className="w-6 h-6 text-dopamine-purple" />
+                                    心情足迹
+                                </h3>
+                                <p className="text-xs text-ink-light mt-1 font-medium">记录每一个真实的当下</p>
+                             </div>
+                             <button onClick={() => setShowMoodMap(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                                <X className="w-5 h-5 text-ink-gray" />
+                             </button>
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="bg-white/50 rounded-[2rem] p-6 mb-8 border border-white shadow-sm">
+                            <div className="flex justify-between items-end mb-4">
+                                <span className="text-sm font-bold text-ink-gray">近30天</span>
+                                <span className="text-[10px] text-ink-light bg-white px-2 py-1 rounded-full">Today</span>
+                            </div>
+                            <div className="grid grid-cols-7 gap-3">
+                                {moodHistory.map((record, index) => {
+                                    if (record.moodId === 'empty') {
+                                        return (
+                                            <div key={index} className="aspect-square rounded-full bg-gray-100/50 flex items-center justify-center">
+                                                <span className="text-[8px] text-gray-300">{record.day}</span>
+                                            </div>
+                                        );
+                                    }
+                                    const moodConfig = getMoodConfig(record.moodId);
+                                    return (
+                                        <div 
+                                            key={index} 
+                                            className={`aspect-square rounded-full flex items-center justify-center relative group cursor-pointer ${moodConfig.style.replace('bg-', 'bg-').replace('text-', 'text-')}`}
+                                        >
+                                            {record.isToday && <div className="absolute inset-0 border-2 border-ink-gray rounded-full opacity-20"></div>}
+                                            <span className="text-sm">{moodConfig.icon}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Recent Highlights List */}
+                        <div className="space-y-4 mb-6">
+                            <h4 className="font-bold text-ink-gray text-lg flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-dopamine-blue" />
+                                最近状态
+                            </h4>
+                            <div className="space-y-3">
+                                {recentRecords.map((record, idx) => {
+                                    const mood = getMoodConfig(record.moodId);
+                                    return (
+                                        <div key={idx} className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 shrink-0 ${mood.style}`}>
+                                                {mood.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="font-bold text-ink-gray text-sm">{mood.label}</span>
+                                                    <span className="text-xs text-ink-light font-mono">{record.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-ink-light">关联:</span>
+                                                    <span className="text-xs font-bold text-ink-gray bg-gray-100 px-2 py-0.5 rounded-md">
+                                                        {record.context}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Insight Card */}
+                        <div className="bg-gradient-to-r from-dopamine-purple/10 to-dopamine-blue/10 p-5 rounded-2xl flex items-start gap-3">
+                            <Sparkles className="w-5 h-5 text-dopamine-purple shrink-0 mt-0.5" />
+                            <div>
+                                <h5 className="font-bold text-dopamine-purple text-sm mb-1">小屿的观察</h5>
+                                <p className="text-xs text-ink-gray leading-relaxed opacity-80">
+                                    最近虽然有一些波动，但整体状态在慢慢变好呢。
+                                    不管是开心还是低落，小屿都陪着你。
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </>
             )}
         </div>
     );
