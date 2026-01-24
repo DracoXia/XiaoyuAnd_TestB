@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus } from 'lucide-react';
+import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap } from 'lucide-react';
 import { AppPhase } from './types';
 import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES } from './constants';
 import DynamicBackground from './components/DynamicBackground';
@@ -42,7 +42,6 @@ const App: React.FC = () => {
   const [healingText, setHealingText] = useState("");
   const [isSubmittingMedicine, setIsSubmittingMedicine] = useState(false);
   const [myMedicine, setMyMedicine] = useState<{content: string, date: string} | null>(null);
-
   
   // New structured result state
   const [aiResult, setAiResult] = useState<TreeholeResult | null>(null);
@@ -57,6 +56,9 @@ const App: React.FC = () => {
   const [visitedCardIds, setVisitedCardIds] = useState<Set<string>>(new Set());
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
   
+  // Transition Modal State
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+
   // Refs to store DOM elements for line calculation
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const dotRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -303,6 +305,7 @@ const App: React.FC = () => {
         setAiResult(null);
         setActiveAmbianceId('default');
         setCurrentAudioUrl(DEFAULT_AUDIO_URL);
+        setShowSummaryModal(false); // Reset
         
         // Reset Waterfall State
         setVisitedCardIds(new Set()); 
@@ -324,6 +327,20 @@ const App: React.FC = () => {
               setCurrentAudioUrl(mode.audioUrl);
           }
       }
+  };
+
+  const handleFinishJourney = () => {
+    // If no interaction (no likes/lights), skip the summary modal
+    if (visitedCardIds.size === 0) {
+        setPhase(AppPhase.DASHBOARD);
+    } else {
+        setShowSummaryModal(true);
+    }
+  };
+
+  const confirmExitToDashboard = () => {
+    setShowSummaryModal(false);
+    setPhase(AppPhase.DASHBOARD);
   };
 
   const currentTheme = AMBIANCE_MODES.find(m => m.id === activeAmbianceId)?.theme || 'warm';
@@ -601,13 +618,53 @@ const App: React.FC = () => {
                             {/* 4. Fixed Bottom Action Button */}
                             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F5F5F7] via-[#F5F5F7]/95 to-transparent z-40 flex justify-center pointer-events-none">
                                 <button 
-                                    onClick={() => setPhase(AppPhase.DASHBOARD)}
+                                    onClick={handleFinishJourney}
                                     className="pointer-events-auto w-full max-w-sm bg-ink-gray text-white py-4 rounded-[2rem] font-bold text-lg flex items-center justify-center space-x-2 hover:bg-black transition-all shadow-2xl shadow-gray-300 hover:scale-[1.02] active:scale-95 group"
                                 >
                                     <span>带着能量出发</span>
                                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
                             </div>
+
+                            {/* 5. Summary/Exit Modal */}
+                            {showSummaryModal && (
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-gray/30 backdrop-blur-sm px-6 animate-fade-in">
+                                    {/* Removed animate-bounce-gentle and transform transitions */}
+                                    <div className="w-full max-w-sm bg-white/95 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] border border-white flex flex-col items-center text-center relative overflow-hidden">
+                                        
+                                        {/* Background Decoration */}
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-dopamine-yellow/20 rounded-full blur-[50px] pointer-events-none"></div>
+                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-dopamine-pink/10 rounded-full blur-[50px] pointer-events-none"></div>
+
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-dopamine-orange to-dopamine-yellow flex items-center justify-center shadow-lg shadow-orange-200 mb-6 relative z-10">
+                                            <Zap className="w-8 h-8 text-white fill-current" />
+                                        </div>
+
+                                        <h3 className="text-2xl font-bold text-ink-gray mb-2 relative z-10">能量收集完毕</h3>
+                                        
+                                        <p className="text-sm font-medium text-ink-gray leading-relaxed mb-8 opacity-80 relative z-10 max-w-[240px]">
+                                            你今天点亮了 <span className="text-dopamine-orange font-bold text-lg mx-0.5">{visitedCardIds.size}</span> 个节点，<br/>
+                                            与 <span className="text-dopamine-pink font-bold text-lg mx-0.5">{visitedCardIds.size}</span> 位陌生人的治愈时刻相遇。
+                                        </p>
+
+                                        <button 
+                                            onClick={confirmExitToDashboard}
+                                            className="w-full bg-ink-gray text-white py-3.5 rounded-2xl font-bold text-base shadow-xl hover:bg-black active:scale-95 transition-all relative z-10 flex items-center justify-center gap-2 group"
+                                        >
+                                            <span>前往下一站</span>
+                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setShowSummaryModal(false)}
+                                            className="mt-4 text-xs font-medium text-ink-light hover:text-ink-gray transition-colors"
+                                        >
+                                            再停留一会儿
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                        </div>
                   ) : (
                       // --- SELECTION PHASE ---

@@ -1,11 +1,5 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { Leaf, Flame, Moon, Snowflake, ArrowRight, Heart, Sparkles, Lock, X, Calendar, TrendingUp, Archive, ScanLine, CheckCircle2, Info, ChevronRight, Quote, ChevronDown, ChevronUp } from 'lucide-react';
+import { Leaf, Flame, Moon, Snowflake, ArrowRight, Heart, Sparkles, Lock, X, Calendar, TrendingUp, Archive, ScanLine, CheckCircle2, Info, ChevronRight, Quote, ChevronDown, ChevronUp, Feather, MessageCircleHeart } from 'lucide-react';
 import { DASHBOARD_DATA, MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
 
 interface DashboardProps {
@@ -21,12 +15,43 @@ interface MoodRecord {
     isToday: boolean;
 }
 
+// Mock Data for "My Echoes" - User submitted content history
+const MY_SUBMISSIONS_MOCK = [
+    { 
+        id: 'm1', 
+        content: '暴雨天点了外卖，小哥全身湿透了还笑着说用餐愉快。给了他打赏，希望他今晚能喝碗热汤。', 
+        date: '10.24', 
+        time: '22:30',
+        hugs: 232, 
+        mood: 'joy' 
+    },
+    { 
+        id: 'm2', 
+        content: '在地铁上忍不住哭了，旁边的小女孩递给我一颗大白兔奶糖，没说话，就塞我手里。糖很甜。', 
+        date: '10.20', 
+        time: '18:45',
+        hugs: 89, 
+        mood: 'sad' 
+    },
+    { 
+        id: 'm3', 
+        content: '周末一个人去看了海，海浪的声音很大，把心里的嘈杂都盖过去了。', 
+        date: '10.15', 
+        time: '14:20',
+        hugs: 12, 
+        mood: 'calm' 
+    }
+];
+
 const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
     const [activeAlert, setActiveAlert] = useState<string | null>(null);
     const [timeGreeting, setTimeGreeting] = useState("安好");
     const [userCounts, setUserCounts] = useState<Record<string, number>>({});
     const [hasNotification, setHasNotification] = useState(true);
     const [showMoodMap, setShowMoodMap] = useState(false);
+    
+    // Mood Map View Mode: 'calendar' | 'echoes'
+    const [moodMapView, setMoodMapView] = useState<'calendar' | 'echoes'>('calendar');
     
     // Fragrance Box State
     const [showFragranceBox, setShowFragranceBox] = useState(false);
@@ -120,6 +145,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
     const handleHeartClick = () => {
         setHasNotification(false);
         setShowMoodMap(true);
+        setMoodMapView('calendar'); // Default to calendar
     };
 
     const getIcon = (type: string, className: string) => {
@@ -279,7 +305,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                     <div className="fixed bottom-0 left-0 right-0 z-[70] bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] p-8 transform animate-fade-in max-h-[85vh] overflow-y-auto no-scrollbar border-t border-white/60">
                         
                         {/* Header */}
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex justify-between items-center mb-6">
                              <div>
                                 <h3 className="font-bold text-2xl text-ink-gray flex items-center gap-2">
                                     <Calendar className="w-6 h-6 text-dopamine-purple" />
@@ -292,78 +318,147 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                              </button>
                         </div>
 
-                        {/* Calendar Grid */}
-                        <div className="bg-white/50 rounded-[2rem] p-6 mb-8 border border-white shadow-sm">
-                            <div className="flex justify-between items-end mb-4">
-                                <span className="text-sm font-bold text-ink-gray">近30天</span>
-                                <span className="text-[10px] text-ink-light bg-white px-2 py-1 rounded-full">Today</span>
+                        {/* View Switcher (Tabs) */}
+                        <div className="bg-gray-100/80 p-1.5 rounded-2xl flex items-center mb-8 relative">
+                            <div 
+                                className={`absolute inset-y-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-spring ${moodMapView === 'calendar' ? 'left-1.5' : 'left-[calc(50%+3px)]'}`}
+                            />
+                            <button 
+                                onClick={() => setMoodMapView('calendar')}
+                                className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors ${moodMapView === 'calendar' ? 'text-ink-gray' : 'text-ink-light'}`}
+                            >
+                                心情日历
+                            </button>
+                            <button 
+                                onClick={() => setMoodMapView('echoes')}
+                                className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors ${moodMapView === 'echoes' ? 'text-ink-gray' : 'text-ink-light'}`}
+                            >
+                                留下的光
+                            </button>
+                        </div>
+
+                        {moodMapView === 'calendar' ? (
+                            // --- VIEW 1: CALENDAR & RECENT ---
+                            <div className="animate-fade-in">
+                                {/* Calendar Grid */}
+                                <div className="bg-white/50 rounded-[2rem] p-6 mb-8 border border-white shadow-sm">
+                                    <div className="flex justify-between items-end mb-4">
+                                        <span className="text-sm font-bold text-ink-gray">近30天</span>
+                                        <span className="text-[10px] text-ink-light bg-white px-2 py-1 rounded-full">Today</span>
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-3">
+                                        {moodHistory.map((record, index) => {
+                                            if (record.moodId === 'empty') {
+                                                return (
+                                                    <div key={index} className="aspect-square rounded-full bg-gray-100/50 flex items-center justify-center">
+                                                        <span className="text-[8px] text-gray-300">{record.day}</span>
+                                                    </div>
+                                                );
+                                            }
+                                            const moodConfig = getMoodConfig(record.moodId);
+                                            return (
+                                                <div 
+                                                    key={index} 
+                                                    className={`aspect-square rounded-full flex items-center justify-center relative group cursor-pointer ${moodConfig.style.replace('bg-', 'bg-').replace('text-', 'text-')}`}
+                                                >
+                                                    {record.isToday && <div className="absolute inset-0 border-2 border-ink-gray rounded-full opacity-20"></div>}
+                                                    <span className="text-sm">{moodConfig.icon}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Recent Highlights List */}
+                                <div className="space-y-4 mb-6">
+                                    <h4 className="font-bold text-ink-gray text-lg flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-dopamine-blue" />
+                                        最近状态
+                                    </h4>
+                                    <div className="space-y-3">
+                                        {recentRecords.map((record, idx) => {
+                                            const mood = getMoodConfig(record.moodId);
+                                            return (
+                                                <div key={idx} className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 shrink-0 ${mood.style}`}>
+                                                        {mood.icon}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="font-bold text-ink-gray text-sm">{mood.label}</span>
+                                                            <span className="text-xs text-ink-light font-mono">{record.date}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-ink-light">关联:</span>
+                                                            <span className="text-xs font-bold text-ink-gray bg-gray-100 px-2 py-0.5 rounded-md">
+                                                                {record.context}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Insight Card */}
+                                <div className="bg-gradient-to-r from-dopamine-purple/10 to-dopamine-blue/10 p-5 rounded-2xl flex items-start gap-3">
+                                    <Sparkles className="w-5 h-5 text-dopamine-purple shrink-0 mt-0.5" />
+                                    <div>
+                                        <h5 className="font-bold text-dopamine-purple text-sm mb-1">小屿的观察</h5>
+                                        <p className="text-xs text-ink-gray leading-relaxed opacity-80">
+                                            最近虽然有一些波动，但整体状态在慢慢变好呢。
+                                            不管是开心还是低落，小屿都陪着你。
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-7 gap-3">
-                                {moodHistory.map((record, index) => {
-                                    if (record.moodId === 'empty') {
-                                        return (
-                                            <div key={index} className="aspect-square rounded-full bg-gray-100/50 flex items-center justify-center">
-                                                <span className="text-[8px] text-gray-300">{record.day}</span>
-                                            </div>
-                                        );
-                                    }
-                                    const moodConfig = getMoodConfig(record.moodId);
+                        ) : (
+                            // --- VIEW 2: MY ECHOES (User Content) ---
+                            <div className="animate-fade-in space-y-4 pb-8">
+                                <div className="flex items-center gap-2 mb-2 px-2 opacity-60">
+                                    <Feather className="w-4 h-4 text-ink-gray" />
+                                    <span className="text-xs font-bold text-ink-gray">我发出的治愈药方</span>
+                                </div>
+                                
+                                {MY_SUBMISSIONS_MOCK.map((echo) => {
+                                    const moodConfig = getMoodConfig(echo.mood);
                                     return (
-                                        <div 
-                                            key={index} 
-                                            className={`aspect-square rounded-full flex items-center justify-center relative group cursor-pointer ${moodConfig.style.replace('bg-', 'bg-').replace('text-', 'text-')}`}
-                                        >
-                                            {record.isToday && <div className="absolute inset-0 border-2 border-ink-gray rounded-full opacity-20"></div>}
-                                            <span className="text-sm">{moodConfig.icon}</span>
+                                        <div key={echo.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
+                                            {/* Decorative Quote Mark */}
+                                            <Quote className="absolute top-4 left-4 w-6 h-6 text-gray-100 fill-current -z-0" />
+                                            
+                                            <div className="relative z-10">
+                                                <p className="font-serif text-ink-gray text-[15px] leading-7 text-justify mb-4 opacity-90">
+                                                    {echo.content}
+                                                </p>
+                                                
+                                                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${moodConfig.style}`}>
+                                                            {moodConfig.icon}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-bold text-ink-light/70">{echo.date}</span>
+                                                            <span className="text-[9px] text-ink-light/50">{echo.time}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-1.5 bg-dopamine-pink/5 px-2.5 py-1 rounded-full border border-dopamine-pink/10">
+                                                        <Heart className="w-3.5 h-3.5 text-dopamine-pink fill-dopamine-pink" />
+                                                        <span className="text-xs font-bold text-dopamine-pink">{echo.hugs}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}
-                            </div>
-                        </div>
 
-                        {/* Recent Highlights List */}
-                        <div className="space-y-4 mb-6">
-                            <h4 className="font-bold text-ink-gray text-lg flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-dopamine-blue" />
-                                最近状态
-                            </h4>
-                            <div className="space-y-3">
-                                {recentRecords.map((record, idx) => {
-                                    const mood = getMoodConfig(record.moodId);
-                                    return (
-                                        <div key={idx} className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 shrink-0 ${mood.style}`}>
-                                                {mood.icon}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="font-bold text-ink-gray text-sm">{mood.label}</span>
-                                                    <span className="text-xs text-ink-light font-mono">{record.date}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-ink-light">关联:</span>
-                                                    <span className="text-xs font-bold text-ink-gray bg-gray-100 px-2 py-0.5 rounded-md">
-                                                        {record.context}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                <div className="text-center py-6 opacity-40">
+                                    <p className="text-[10px] text-ink-light font-serif">你的每一次分享，都点亮了某人的夜</p>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Insight Card */}
-                        <div className="bg-gradient-to-r from-dopamine-purple/10 to-dopamine-blue/10 p-5 rounded-2xl flex items-start gap-3">
-                            <Sparkles className="w-5 h-5 text-dopamine-purple shrink-0 mt-0.5" />
-                            <div>
-                                <h5 className="font-bold text-dopamine-purple text-sm mb-1">小屿的观察</h5>
-                                <p className="text-xs text-ink-gray leading-relaxed opacity-80">
-                                    最近虽然有一些波动，但整体状态在慢慢变好呢。
-                                    不管是开心还是低落，小屿都陪着你。
-                                </p>
-                            </div>
-                        </div>
+                        )}
 
                     </div>
                 </>
