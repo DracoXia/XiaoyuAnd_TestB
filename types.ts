@@ -1,7 +1,19 @@
 export enum AppPhase {
-  LANDING = 'LANDING',
-  IMMERSION = 'IMMERSION',
-  ENDING = 'ENDING',
+  LANDING = 'LANDING',     // Entry point (permission request)
+  RITUAL = 'RITUAL',       // Pouring tea interaction
+  SIGN = 'SIGN',           // AI generated daily sign
+  IMMERSION = 'IMMERSION', // 10 min meditation
+  TREEHOLE = 'TREEHOLE',   // Mood input & AI Echo
+  DASHBOARD = 'DASHBOARD', // The "World" map
+}
+
+export interface ScenarioCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  iconType: 'leaf' | 'flame' | 'moon' | 'snowflake';
+  status: 'active' | 'locked';
+  color: string;
 }
 
 export interface ProductInfo {
@@ -25,15 +37,4 @@ export interface ProductInfo {
     };
     footer: string;
   }
-}
-
-export interface StoryContent {
-  quote: string;
-  body: string[];
-}
-
-export interface AudioConfig {
-  url: string;
-  isPlaying: boolean;
-  volume: number;
 }
