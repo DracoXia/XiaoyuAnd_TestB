@@ -49,6 +49,13 @@ const App: React.FC = () => {
     }
   }, [phase]);
 
+  // Triggered instantly when user pours tea to 100% (User Interaction Context)
+  const primeAudio = () => {
+      // Start playing silently
+      setVolume(0);
+      setIsPlaying(true);
+  };
+
   const handleRitualComplete = () => {
     // 1. Play transition sound
     const transitionAudio = new Audio(TRANSITION_AUDIO_URL);
@@ -57,7 +64,18 @@ const App: React.FC = () => {
 
     // 2. Transition
     setPhase(AppPhase.IMMERSION);
-    setIsPlaying(true);
+    
+    // 3. Fade in the background music (which was primed at volume 0)
+    let currentVol = 0;
+    const fadeInterval = setInterval(() => {
+        currentVol += 0.05;
+        if (currentVol >= 1) {
+            currentVol = 1;
+            clearInterval(fadeInterval);
+        }
+        setVolume(currentVol);
+    }, 100);
+
     startImmersionTimer();
   };
 
@@ -151,12 +169,12 @@ const App: React.FC = () => {
   // --- RENDERERS ---
 
   const renderLanding = () => (
-      <Ritual onComplete={handleRitualComplete} />
+      <Ritual onComplete={handleRitualComplete} onPrimeAudio={primeAudio} />
   );
 
   const renderImmersion = () => (
     <div className="absolute inset-0 z-30 overflow-y-auto no-scrollbar animate-fade-in flex flex-col font-sans">
-      {isAudioLoading && isPlaying && !audioError && (
+      {isAudioLoading && isPlaying && !audioError && volume > 0 && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/30 backdrop-blur-md pointer-events-none animate-fade-in">
           <Loader2 className="w-8 h-8 text-dopamine-orange animate-spin mb-4" />
           <p className="text-xs font-bold text-ink-light tracking-[0.3em] animate-pulse">调频中...</p>
@@ -375,7 +393,8 @@ const App: React.FC = () => {
 
       <AudioPlayer 
         url={DEFAULT_AUDIO_URL} 
-        isPlaying={isPlaying && (phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)} // Allow playing in TREEHOLE if manually entered
+        // Allow playing in RITUAL phase if explicitly triggered (for preloading)
+        isPlaying={isPlaying && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)} 
         volume={volume} 
         onLoadingStatusChange={setIsAudioLoading}
         onError={() => setAudioError(true)}

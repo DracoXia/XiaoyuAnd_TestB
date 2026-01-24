@@ -1,12 +1,14 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { TEXT_CONTENT, POUR_AUDIO_URL } from '../constants';
 import { ChevronUp } from 'lucide-react';
 
 interface RitualProps {
   onComplete: () => void;
+  onPrimeAudio?: () => void; // New prop to prime background audio during interaction
 }
 
-const Ritual: React.FC<RitualProps> = ({ onComplete }) => {
+const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio }) => {
   const [fillLevel, setFillLevel] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   
@@ -37,10 +39,13 @@ const Ritual: React.FC<RitualProps> = ({ onComplete }) => {
       
       // Unlock Audio Context on first interaction
       if (!audioUnlocked.current && audioRef.current) {
-          audioRef.current.play().then(() => {
-              audioRef.current?.pause();
-              audioUnlocked.current = true;
-          }).catch(e => console.log("Audio silent unlock failed", e));
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+              playPromise.then(() => {
+                  audioRef.current?.pause();
+                  audioUnlocked.current = true;
+              }).catch(e => console.log("Audio silent unlock failed", e));
+          }
       }
 
       isDragging.current = true;
@@ -63,7 +68,13 @@ const Ritual: React.FC<RitualProps> = ({ onComplete }) => {
 
           // Play audio when actively pouring (moving up)
           if (audioRef.current && audioRef.current.paused) {
-             audioRef.current.play().catch(() => {});
+             const playPromise = audioRef.current.play();
+             if (playPromise !== undefined) {
+                 playPromise.catch(error => {
+                     // Ignore AbortError which happens if we pause too quickly
+                     // console.warn("Playback prevented", error);
+                 });
+             }
           }
 
           if (nextLevel >= 100) {
@@ -79,7 +90,9 @@ const Ritual: React.FC<RitualProps> = ({ onComplete }) => {
 
   const handleEnd = () => {
       isDragging.current = false;
-      if (audioRef.current) audioRef.current.pause();
+      if (audioRef.current && !audioRef.current.paused) {
+          audioRef.current.pause();
+      }
   };
 
   // Touch Events
@@ -100,9 +113,18 @@ const Ritual: React.FC<RitualProps> = ({ onComplete }) => {
       setIsCompleted(true);
       isDragging.current = false;
       
+      // Stop pouring sound
       if (audioRef.current) audioRef.current.pause();
-      if (navigator.vibrate) try { navigator.vibrate([20, 30, 20]); } catch(e) {}
       
+      // Haptic feedback
+      if (navigator.vibrate) try { navigator.vibrate([20, 30, 20]); } catch(e) {}
+
+      // PRIME AUDIO HERE: Trigger background music while we still have user interaction
+      if (onPrimeAudio) {
+          onPrimeAudio();
+      }
+      
+      // Wait for visual transition
       setTimeout(onComplete, 1200);
   };
 
