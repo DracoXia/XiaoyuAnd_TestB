@@ -5,7 +5,7 @@ import { ChevronUp, Archive, Lock, CheckCircle2, Leaf, ArrowRight } from 'lucide
 
 interface RitualProps {
   onComplete: () => void;
-  onPrimeAudio?: () => void;
+  onInteractionStart?: () => void; // Added back for iOS Audio Unlocking
   activeFragranceId: string;
   onFragranceChange: (id: string) => void;
 }
@@ -83,7 +83,7 @@ class SmokeParticle {
     }
 }
 
-const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragranceId, onFragranceChange }) => {
+const Ritual: React.FC<RitualProps> = ({ onComplete, onInteractionStart, activeFragranceId, onFragranceChange }) => {
   const [fillLevel, setFillLevel] = useState(0); // 0 to 100
   const [isCompleted, setIsCompleted] = useState(false);
   
@@ -104,6 +104,7 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
   const activeFragrance = FRAGRANCE_LIST.find(f => f.id === activeFragranceId) || FRAGRANCE_LIST[0];
 
   useEffect(() => {
+    // Only handle the POURing audio here.
     audioRef.current = new Audio(POUR_AUDIO_URL);
     audioRef.current.loop = true;
     
@@ -127,8 +128,6 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
 
       const animate = () => {
           // OPTIMIZATION: DO NOT use devicePixelRatio on mobile for smoke.
-          // Smoke is blurry anyway; rendering at 3x Retina resolution kills FPS.
-          // We stick to 1:1 CSS pixels.
           if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
               canvas.width = window.innerWidth;
               canvas.height = window.innerHeight;
@@ -148,7 +147,6 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
                   if (Math.random() > 0.90) spawnCount = 1; 
               } else {
                   // Active: 1 or 2 per frame max.
-                  // We rely on particle SIZE to fill the screen, not quantity.
                   spawnCount = Math.floor(currentLevel / 30) + 1;
               }
 
@@ -158,7 +156,6 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
           }
 
           // 2. Update & Draw Particles
-          // Use backwards loop for efficient splicing
           for (let i = particlesRef.current.length - 1; i >= 0; i--) {
               const p = particlesRef.current[i];
               p.update();
@@ -184,8 +181,10 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
   const handleStart = (y: number) => {
       if (isCompleted || isBoxOpen) return; 
       
-      if (onPrimeAudio) onPrimeAudio();
+      // CRITICAL: Notify parent to unlock global audio (Volume 0) on first user gesture
+      if (onInteractionStart) onInteractionStart();
 
+      // Handle local Pour Audio
       if (!audioUnlocked.current && audioRef.current) {
           const playPromise = audioRef.current.play();
           if (playPromise !== undefined) {

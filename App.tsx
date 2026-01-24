@@ -68,15 +68,6 @@ const App: React.FC = () => {
     }
   }, [phase]);
 
-  // Triggered instantly when user TOUCHES the screen in Ritual (User Interaction Context)
-  const primeAudio = () => {
-      // Start playing silently immediately to unlock audio context
-      if (!isPlaying) {
-          setVolume(0);
-          setIsPlaying(true);
-      }
-  };
-
   const handleFragranceChange = (id: string) => {
       setActiveFragranceId(id);
       // Optional: Change audio URL based on fragrance if defined
@@ -86,24 +77,30 @@ const App: React.FC = () => {
       }
   };
 
+  // --- NEW: Handle Start of Interaction on Ritual Page ---
+  // This is the "Prime Audio" trick. We start playing at Volume 0 when user touches screen.
+  // This satisfies iOS/Android policy while keeping the experience silent until the right moment.
+  const handleRitualInteractionStart = () => {
+      if (!isPlaying) {
+          setVolume(0); // Ensure silence
+          setIsPlaying(true); // Start the stream (Unlock Audio Context)
+      }
+  };
+
   const handleRitualComplete = () => {
-    // 1. Play transition sound
+    // 1. Play transition sound (Effect)
     const transitionAudio = new Audio(TRANSITION_AUDIO_URL);
     transitionAudio.volume = 0.9;
     transitionAudio.play().catch(console.warn);
 
     // 2. Transition Phase Change
-    // Switch phase to IMMERSION immediately so it renders *underneath* the Ritual layer
     setPhase(AppPhase.IMMERSION);
-    
-    // 3. Trigger Fade Out of Ritual Layer (Visual Transition)
-    // The Ritual layer is still mounted because showRitualLayer is true
     setFadeRitual(true);
 
-    // 4. Fade in the background music (which was primed at volume 0)
-    setVolume(0); 
-    if (!isPlaying) setIsPlaying(true);
-
+    // 3. Start Background Music FADE IN
+    // Note: The audio is ALREADY playing (at volume 0) thanks to handleRitualInteractionStart
+    // We just need to fade it up now.
+    
     let currentVol = 0;
     const fadeInterval = setInterval(() => {
         currentVol += 0.05;
@@ -114,10 +111,10 @@ const App: React.FC = () => {
         setVolume(currentVol);
     }, 100);
 
-    // 5. Unmount Ritual layer after transition finishes
+    // 4. Unmount Ritual layer after transition finishes
     setTimeout(() => {
         setShowRitualLayer(false);
-    }, 3000); // 3 seconds fade out duration
+    }, 3000); 
 
     startImmersionTimer();
   };
@@ -529,7 +526,7 @@ const App: React.FC = () => {
           <div className={`absolute inset-0 z-50 transition-opacity duration-[3000ms] ease-in-out ${fadeRitual ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <Ritual 
                 onComplete={handleRitualComplete} 
-                onPrimeAudio={primeAudio} 
+                onInteractionStart={handleRitualInteractionStart}
                 activeFragranceId={activeFragranceId}
                 onFragranceChange={handleFragranceChange}
               />
