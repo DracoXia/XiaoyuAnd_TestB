@@ -10,6 +10,9 @@ interface RitualProps {
   onFragranceChange: (id: string) => void;
 }
 
+// Performance Limiters
+const MAX_PARTICLES = 80; // Hard cap for mobile performance
+
 // --- Particle System Types ---
 class SmokeParticle {
     x: number;
@@ -28,34 +31,27 @@ class SmokeParticle {
         const isIdle = intensity < 3;
 
         // Spawn position
-        const spread = isIdle ? 10 : 20 + (intensity * 3); 
+        const spread = isIdle ? 15 : 30 + (intensity * 2); 
         this.x = w / 2 + (Math.random() - 0.5) * spread; 
-        this.y = h + 10; 
+        this.y = h + 20; // Start further down to allow fade in
         
         if (isIdle) {
              // --- IDLE STATE: Zen, Slow, Faint ---
-             // Very slow upward float
-             this.vy = - (Math.random() * 0.4 + 0.2); 
-             // Minimal horizontal drift
-             this.vx = (Math.random() - 0.5) * 0.2;   
-             // Start smaller
-             this.size = Math.random() * 15 + 5;     
-             // Grow very slowly
-             this.growth = 0.05; 
-             // Live longer to allow slow floating to reach top
-             this.maxLife = 400 + Math.random() * 200; 
-             // Extremely low opacity (2% - 10%) for "barely there" look
-             this.alpha = Math.random() * 0.08 + 0.02; 
+             this.vy = - (Math.random() * 0.3 + 0.1); // Extremely slow
+             this.vx = (Math.random() - 0.5) * 0.3;   
+             this.size = Math.random() * 25 + 10; // Large base size for blur effect     
+             this.growth = 0.02; 
+             this.maxLife = 500; 
+             this.alpha = Math.random() * 0.05 + 0.01; // Very faint
         } else {
-             // --- ACTIVE STATE: Intense, Fast, Thick ---
-             const speedBoost = 1 + (intensity / 30); 
+             // --- ACTIVE STATE: Intense, Fast ---
+             const speedBoost = 1 + (intensity / 40); 
              this.vy = - (Math.random() * 1.5 + 0.5) * speedBoost;
-             this.vx = (Math.random() - 0.5) * 0.5;
-             this.size = Math.random() * 20 + 10 + (intensity / 4);
-             this.growth = 0.3;
-             this.maxLife = 100 + intensity * 2;
-             // Visible smoke
-             this.alpha = Math.random() * 0.4 + 0.2; 
+             this.vx = (Math.random() - 0.5) * 0.8;
+             this.size = Math.random() * 30 + 15 + (intensity / 5);
+             this.growth = 0.2;
+             this.maxLife = 120 + intensity;
+             this.alpha = Math.random() * 0.3 + 0.1; 
         }
 
         this.life = this.maxLife;
@@ -66,30 +62,24 @@ class SmokeParticle {
         this.x += this.vx + Math.sin(this.wobble) * 0.5;
         this.y += this.vy;
         this.life--;
-        this.wobble += 0.05;
+        this.wobble += 0.03;
         this.size += this.growth;
         
         // Gentle fade out
-        if (this.life < 100) {
-            this.alpha *= 0.96;
+        if (this.life < 80) {
+            this.alpha *= 0.95;
         }
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.save();
-        ctx.globalAlpha = this.alpha;
-        ctx.beginPath();
-        // Draw a soft circle (simulating a puff of smoke)
-        // Using radial gradient for soft edges
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-        // Smoke color: Slightly warm white for better contrast on dark bg
-        gradient.addColorStop(0, 'rgba(240, 240, 235, 0.5)'); 
-        gradient.addColorStop(1, 'rgba(240, 240, 235, 0)');
+        // OPTIMIZATION: Removed createRadialGradient (Expensive on iOS)
+        // We draw simple circles and use CSS filter: blur() on the canvas element instead.
         
-        ctx.fillStyle = gradient;
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.beginPath();
+        // Use a slightly warm white
+        ctx.fillStyle = `rgba(245, 245, 240, ${this.alpha})`;
+        ctx.arc(this.x, this.y, this.size, 0, 6.28); // 6.28 is approx PI*2
         ctx.fill();
-        ctx.restore();
     }
 }
 
@@ -132,11 +122,13 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
   useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: true }); // optimize
       if (!ctx) return;
 
       const animate = () => {
-          // Resize handling (basic)
+          // OPTIMIZATION: DO NOT use devicePixelRatio on mobile for smoke.
+          // Smoke is blurry anyway; rendering at 3x Retina resolution kills FPS.
+          // We stick to 1:1 CSS pixels.
           if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
               canvas.width = window.innerWidth;
               canvas.height = window.innerHeight;
@@ -148,31 +140,31 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
           // 1. Spawn Particles
           const currentLevel = fillLevelRef.current;
           
-          let spawnCount = 0;
-          if (currentLevel < 3) {
-              // Idle smoke: Very sparse, like a single incense stick
-              // Chance reduced to ~8% per frame (at 60fps ~5 puffs/sec)
-              if (Math.random() > 0.92) spawnCount = 1; 
-          } else {
-              // Active smoke: proportional to level
-              spawnCount = Math.floor(currentLevel / 10) + 1;
-              
-              // CRITICAL: Boost smoke significantly at high levels to create "whiteout" feel
-              if (currentLevel > 90) spawnCount = 15; 
-              else if (spawnCount > 6) spawnCount = 6;
-          }
+          // Only spawn if under limit
+          if (particlesRef.current.length < MAX_PARTICLES) {
+              let spawnCount = 0;
+              if (currentLevel < 3) {
+                  // Idle: Rare spawns
+                  if (Math.random() > 0.90) spawnCount = 1; 
+              } else {
+                  // Active: 1 or 2 per frame max.
+                  // We rely on particle SIZE to fill the screen, not quantity.
+                  spawnCount = Math.floor(currentLevel / 30) + 1;
+              }
 
-          for (let i = 0; i < spawnCount; i++) {
-              particlesRef.current.push(new SmokeParticle(canvas.width, canvas.height, currentLevel));
+              for (let i = 0; i < spawnCount; i++) {
+                  particlesRef.current.push(new SmokeParticle(canvas.width, canvas.height, currentLevel));
+              }
           }
 
           // 2. Update & Draw Particles
+          // Use backwards loop for efficient splicing
           for (let i = particlesRef.current.length - 1; i >= 0; i--) {
               const p = particlesRef.current[i];
               p.update();
               p.draw(ctx);
               
-              if (p.life <= 0 || (currentLevel < 80 && p.y < -50)) {
+              if (p.life <= 0 || (currentLevel < 80 && p.y < -100)) {
                   particlesRef.current.splice(i, 1);
               }
           }
@@ -282,9 +274,10 @@ const Ritual: React.FC<RitualProps> = ({ onComplete, onPrimeAudio, activeFragran
         onMouseLeave={onMouseLeave}
     >
       {/* 1. Canvas Layer (Smoke) */}
+      {/* OPTIMIZATION: blur-2xl/3xl does the heavy lifting on GPU. Opacity 80 to make it blend well. */}
       <canvas 
           ref={canvasRef}
-          className="absolute inset-0 z-30 pointer-events-none touch-none"
+          className="absolute inset-0 z-30 pointer-events-none touch-none blur-[20px] md:blur-[30px] opacity-90"
       />
       
       {/* 2. Content Layer */}
