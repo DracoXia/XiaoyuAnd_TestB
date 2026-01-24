@@ -7,5 +7,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+  },
+  define: {
+    // Polyfill process.env to prevent "process is not defined" runtime error
+    'process.env': {}
   }
 });
