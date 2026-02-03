@@ -48,8 +48,8 @@ export const FRAGRANCE_LIST = [
 ];
 
 // --- NEW: Ambiance Tuner Options (Immersion) ---
-export const PINK_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/pink_noise.mp3"; // Placeholder - please replace with actual
-export const BROWN_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/brown_noise.mp3"; // Placeholder - please replace with actual
+export const PINK_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/low-pink-noise-434732.mp3";
+export const BROWN_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/soft-brown-noise-299934.mp3";
 
 export const AMBIANCE_MODES = [
   {

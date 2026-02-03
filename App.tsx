@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon } from 'lucide-react';
 import { AppPhase } from './types';
-import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES_BY_MOOD } from './constants';
+import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES_BY_MOOD, PINK_NOISE_URL, BROWN_NOISE_URL } from './constants';
 import DynamicBackground from './components/DynamicBackground';
 import AudioPlayer from './components/AudioPlayer';
 import Ritual from './components/Ritual';
@@ -16,7 +16,8 @@ const App: React.FC = () => {
     const [fadeRitual, setFadeRitual] = useState(false); // Should Ritual component fade opacity to 0?
 
     // Audio State
-    const [currentAudioUrl, setCurrentAudioUrl] = useState(DEFAULT_AUDIO_URL);
+    const [currentAudioUrl, setCurrentAudioUrl] = useState(DEFAULT_AUDIO_URL); // Layer 1: Scenario Base
+    const [layer2AudioUrl, setLayer2AudioUrl] = useState(""); // Layer 2: Functional Noise
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState(false);
@@ -139,6 +140,17 @@ const App: React.FC = () => {
         setPathPoints(points);
 
     }, [visitedCardIds, aiResult, echoes]); // Recalc when visited set changes or UI updates
+
+    // --- NEW: Sync Ambiance Choice to Layer 2 Audio ---
+    useEffect(() => {
+        if (activeAmbianceId === 'sleep') {
+            setLayer2AudioUrl(PINK_NOISE_URL);
+        } else if (activeAmbianceId === 'meditate') {
+            setLayer2AudioUrl(BROWN_NOISE_URL);
+        } else {
+            setLayer2AudioUrl(""); // Original = No overlay (or we could have a specific overlay)
+        }
+    }, [activeAmbianceId]);
 
     const handleFragranceChange = (id: string) => {
         setActiveFragranceId(id);
@@ -328,13 +340,8 @@ const App: React.FC = () => {
 
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
         e.stopPropagation();
-        const mode = AMBIANCE_MODES.find(m => m.id === modeId);
-        if (mode) {
-            setActiveAmbianceId(modeId);
-            if (currentAudioUrl !== mode.audioUrl) {
-                setCurrentAudioUrl(mode.audioUrl);
-            }
-        }
+        setActiveAmbianceId(modeId);
+        // URL update is now handled by useEffect on activeAmbianceId
     };
 
     const handleFinishJourney = () => {
@@ -730,12 +737,19 @@ const App: React.FC = () => {
             </div>
 
             <AudioPlayer
+                key="main-audio"
                 url={currentAudioUrl}
                 // Allow playing in RITUAL phase if explicitly triggered (for preloading)
                 isPlaying={isPlaying && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE || phase === AppPhase.LANDING)}
-                volume={volume}
+                volume={layer2AudioUrl ? volume * 0.65 : volume} // Reduce volume by 35% if Layer 2 is active
                 onLoadingStatusChange={setIsAudioLoading}
                 onError={() => setAudioError(true)}
+            />
+            {/* LAYER 2: Functional Noise Overlay */}
+            <AudioPlayer
+                url={layer2AudioUrl}
+                isPlaying={isPlaying && layer2AudioUrl !== "" && (phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)}
+                volume={volume * 0.8} // Slightly lower volume for overlay to blend well
             />
 
             {/* Early Exit Button (Left Top) - CHANGED to BookOpen for Mood Entry */}
