@@ -48,36 +48,37 @@ export const FRAGRANCE_LIST = [
 ];
 
 // --- NEW: Ambiance Tuner Options (Immersion) ---
+export const PINK_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/pink_noise.mp3"; // Placeholder - please replace with actual
+export const BROWN_NOISE_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/brown_noise.mp3"; // Placeholder - please replace with actual
+
 export const AMBIANCE_MODES = [
   {
-    id: 'default',
+    id: 'original',
     label: '本味',
-    icon: 'tea', // mapped in component
-    audioUrl: DEFAULT_AUDIO_URL, // Base track
-    theme: 'warm' // Warm Orange/Yellow
+    icon: 'leaf',
+    audioUrl: DEFAULT_AUDIO_URL, // White Noise / Original Track
+    theme: 'warm'
   },
   {
-    id: 'rain',
-    label: '听雨',
-    icon: 'rain',
-    // Placeholder to prevent 404s.
-    audioUrl: DEFAULT_AUDIO_URL,
-    theme: 'rain' // Cool Blue/Gray
+    id: 'sleep',
+    label: '入眠',
+    icon: 'moon',
+    audioUrl: PINK_NOISE_URL, // Pink Noise
+    theme: 'night' // Darker/Blue
   },
   {
-    id: 'wind',
-    label: '晚风',
+    id: 'meditate',
+    label: '冥想',
     icon: 'wind',
-    // Placeholder to prevent 404s.
-    audioUrl: DEFAULT_AUDIO_URL,
-    theme: 'wind' // Nature Green/Teal
+    audioUrl: BROWN_NOISE_URL, // Brown Noise
+    theme: 'nature' // Green/Brown
   }
 ];
 
 export const TEXT_CONTENT = {
   ritual: {
-    main: ["白", "茶", "洗", "心"],
-    hint: "倾斜手机，注茶入盏"
+    main: ["焚", "香", "静", "心"],
+    hint: "上划屏幕，点燃线香"
   },
   immersion: [
     "庭院无声",

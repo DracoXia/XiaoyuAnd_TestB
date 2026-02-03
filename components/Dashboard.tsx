@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Leaf, Flame, Moon, Snowflake, ArrowRight, Heart, BookOpen, Sparkles, Lock, X, Calendar, TrendingUp, Archive, ScanLine, CheckCircle2, Info, ChevronRight, Quote, ChevronDown, ChevronUp, Feather, MessageCircleHeart } from 'lucide-react';
-import { DASHBOARD_DATA, MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
+import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, ChevronRight, Check, ArrowRight, ChevronDown, ChevronUp, Info, Flame, ScanLine } from 'lucide-react';
+import { MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT, DASHBOARD_DATA } from '../constants'; // Keep DASHBOARD_DATA import to avoid breaking if referenced elsewhere, but won't use it.
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
@@ -68,36 +68,21 @@ const MY_SUBMISSIONS_MOCK = [
 ];
 
 const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
-    const [activeAlert, setActiveAlert] = useState<string | null>(null);
     const [timeGreeting, setTimeGreeting] = useState("安好");
-    const [userCounts, setUserCounts] = useState<Record<string, number>>({});
     const [hasNotification, setHasNotification] = useState(true);
     const [showMoodMap, setShowMoodMap] = useState(false);
-
-    // Mood Map View Mode: 'calendar' | 'echoes'
     const [moodMapView, setMoodMapView] = useState<'calendar' | 'echoes'>('calendar');
 
-    // Fragrance Box State
-    const [showFragranceBox, setShowFragranceBox] = useState(false);
-    const [showFragranceDetail, setShowFragranceDetail] = useState(false); // To toggle product detail view
-    const [showStory, setShowStory] = useState(false); // To toggle perfumer story
-    const [showFragranceHint, setShowFragranceHint] = useState(false);
+    // New Scent Selection State
+    const [selectedScentId, setSelectedScentId] = useState<string | null>(null);
+    const [showFragranceDetail, setShowFragranceDetail] = useState(false); // Restore: View Details
+    const [showStory, setShowStory] = useState(false); // Restore: View Story
 
     useEffect(() => {
-        // Check first-time visit
-        const hasSeen = localStorage.getItem('has_seen_fragrance_hint');
-        if (!hasSeen) setShowFragranceHint(true);
-
         const hour = new Date().getHours();
         if (hour < 11) setTimeGreeting("早安");
         else if (hour < 18) setTimeGreeting("午安");
         else setTimeGreeting("晚安");
-
-        const counts: Record<string, number> = {};
-        DASHBOARD_DATA.scenarios.forEach(s => {
-            counts[s.id] = Math.floor(Math.random() * (800 - 100) + 100);
-        });
-        setUserCounts(counts);
     }, []);
 
     // Generate Mock Mood History (Last 30 days)
@@ -140,69 +125,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
         return moodHistory.filter(h => h.moodId !== 'empty').reverse().slice(0, 4);
     }, [moodHistory]);
 
-    const handleCardClick = (card: any, e: React.MouseEvent) => {
-        // Prevent event bubbling if clicking a button inside the card
-        if ((e.target as HTMLElement).closest('button')) return;
-
-        if (card.status === 'locked') {
-            setActiveAlert(`${card.title}模式 即将上线`);
-            setTimeout(() => setActiveAlert(null), 2500);
-        } else {
-            if (card.id === 'relax') {
-                onScenarioClick(card.id);
-            }
-        }
-    };
-
-    const handleFragranceBoxClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (showFragranceHint) {
-            setShowFragranceHint(false);
-            localStorage.setItem('has_seen_fragrance_hint', 'true');
-        }
-        setShowFragranceBox(true);
-        setShowFragranceDetail(false); // Reset to list view
-        setShowStory(false);
-    };
-
-    const handleScanClick = (fragranceName: string) => {
-        setActiveAlert(`请扫描"${fragranceName}"包装盒内的二维码`);
-        setTimeout(() => setActiveAlert(null), 3000);
-    };
-
-    const handleLifestyleClick = () => {
-        setActiveAlert("小屿和生活 即将上线");
-        setTimeout(() => setActiveAlert(null), 2500);
-    };
-
     const handleHeartClick = () => {
         setHasNotification(false);
         setShowMoodMap(true);
-        setMoodMapView('calendar'); // Default to calendar
-    };
-
-    const getIcon = (type: string, className: string) => {
-        switch (type) {
-            case 'leaf': return <Leaf className={className} strokeWidth={2.5} />;
-            case 'flame': return <Flame className={className} strokeWidth={2.5} />;
-            case 'moon': return <Moon className={className} strokeWidth={2.5} />;
-            case 'snowflake': return <Snowflake className={className} strokeWidth={2.5} />;
-            default: return <Leaf className={className} strokeWidth={2.5} />;
-        }
+        setMoodMapView('calendar');
     };
 
     const getMoodConfig = (id: string) => {
         return MOOD_OPTIONS.find(m => m.id === id) || { icon: '', style: 'bg-gray-100', label: '' };
     };
 
+    const handleConfirmScent = () => {
+        if (selectedScentId) {
+            onScenarioClick(selectedScentId);
+        }
+    };
+
     return (
-        <div className="absolute inset-0 bg-apple-gray z-50 overflow-y-auto no-scrollbar pb-32 animate-fade-in font-sans">
-            {/* Header with blurred backdrop effect */}
-            <div className="sticky top-0 z-10 px-8 py-6 bg-apple-gray/80 backdrop-blur-xl flex justify-between items-center transition-all duration-300">
+        <div className="absolute inset-0 bg-apple-gray z-50 overflow-hidden animate-fade-in font-sans flex flex-col">
+            {/* Header */}
+            <div className="flex-none px-8 py-6 flex justify-between items-center z-20">
                 <div className="flex flex-col">
-                    <span className="text-sm font-bold text-ink-light tracking-wider uppercase mb-1">Healing Map</span>
-                    <h2 className="text-3xl font-bold text-ink-gray flex items-center gap-2">
-                        {timeGreeting}，小屿
+                    <span className="text-sm font-bold text-ink-light tracking-wider uppercase mb-1">小屿和 · 香</span>
+                    <h2 className="text-3xl font-bold text-ink-gray">
+                        {timeGreeting}
                     </h2>
                 </div>
                 <button
@@ -218,130 +164,123 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                 </button>
             </div>
 
-            {/* Main Content */}
-            <div className="px-6 mt-2 space-y-8">
+            {/* Main Content: Scent Selection */}
+            <div className="flex-1 flex flex-col px-6 pb-8 overflow-y-auto no-scrollbar">
 
-                {/* Hero / Scenarios Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    {DASHBOARD_DATA.scenarios.map((card: any, idx) => (
-                        <div
-                            key={card.id}
-                            onClick={(e) => handleCardClick(card, e)}
-                            className={`
-                                group relative aspect-[3.5/5] p-6 rounded-[2rem] flex flex-col justify-between transition-all duration-500 ease-out
-                                ${card.status === 'active'
-                                    ? `bg-gradient-to-br ${card.gradient} shadow-lg ${card.shadow} scale-100`
-                                    : 'bg-white/50 border border-white/40 grayscale-[0.3] opacity-80'}
-                                hover:scale-[1.02] active:scale-95 cursor-pointer overflow-hidden
-                            `}
-                        >
-                            {/* Decorative background blob */}
-                            {card.status === 'active' && (
-                                <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full ${card.iconBg} blur-2xl opacity-60 pointer-events-none`}></div>
-                            )}
-
-                            <div className="relative z-10 flex justify-between items-start">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.iconBg} backdrop-blur-sm transition-transform group-hover:rotate-6 duration-500`}>
-                                    {getIcon(card.iconType, `w-7 h-7 ${card.accent}`)}
-                                </div>
-                                {card.status === 'locked' && <Lock className="w-4 h-4 text-ink-light" />}
-
-                                {/* Fragrance Box Trigger (Only for Relax/Active card) */}
-
-                            </div>
-
-                            <div className="relative z-10">
-                                <div className="flex items-center space-x-2 mb-2">
-                                    {card.status === 'active' && (
-                                        <span className="flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-dopamine-green opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-dopamine-green"></span>
-                                        </span>
-                                    )}
-                                    <span className="text-[10px] font-bold text-ink-light tracking-wide uppercase">
-                                        {card.status === 'active' ? `${userCounts[card.id]} 人在此刻` : 'Locked'}
-                                    </span>
-                                </div>
-                                <h3 className="font-bold text-2xl text-ink-gray leading-none mb-2">{card.title}</h3>
-                                {card.id === 'relax' ? (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation(); // Prevent card click
-                                            handleFragranceBoxClick(e);
-                                        }}
-                                        className="relative inline-flex items-center gap-2 bg-white/60 hover:bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full transition-all group-hover:shadow-sm active:scale-95"
-                                    >
-                                        {showFragranceHint && (
-                                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-max bg-ink-gray text-white text-[10px] font-bold px-3 py-1.5 rounded-xl shadow-xl animate-bounce z-20 pointer-events-none">
-                                                设置当前线香
-                                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-ink-gray rotate-45"></div>
-                                            </div>
-                                        )}
-                                        <Archive className="w-3 h-3 text-ink-gray" />
-                                        <span className="text-xs font-bold text-ink-gray">{card.subtitle}</span>
-                                        <ChevronRight className="w-3 h-3 text-ink-light" />
-                                    </button>
-                                ) : (
-                                    <p className={`text-sm font-bold ${card.accent} opacity-90`}>{card.subtitle}</p>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                <div className="mb-6 mt-4">
+                    <h3 className="text-xl font-bold text-ink-gray mb-2">确认今日香型</h3>
+                    <p className="text-sm text-ink-gray opacity-60">轻触确认，开启此刻的疗愈</p>
                 </div>
 
-                {/* Banner / Lifestyle Section */}
-                <div>
-                    <div className="flex items-center justify-between mb-4 px-2">
-                        <h3 className="font-bold text-xl text-ink-gray">小屿和生活</h3>
-                        <span className="text-xs font-bold text-ink-light bg-gray-100 px-3 py-1 rounded-full">Coming soon</span>
-                    </div>
+                {/* Scent List */}
+                {/* Scent List - Redesigned: Narrow Frosted Strips */}
+                <div className="space-y-3 mb-32">
+                    {FRAGRANCE_LIST.map((scent) => {
+                        const isSelected = selectedScentId === scent.id;
+                        const isLocked = scent.status === 'locked';
 
-                    <div
-                        onClick={handleLifestyleClick}
-                        className="w-full bg-white rounded-[2.5rem] p-3 shadow-xl shadow-gray-100/50 cursor-pointer active:scale-95 transition-transform"
-                    >
-                        <div className="relative w-full h-48 rounded-[2rem] overflow-hidden">
-                            <img
-                                src="https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/xiaoyuAnd.jpg"
-                                className="w-full h-full object-cover"
-                                alt="Lifestyle"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                            <div className="absolute bottom-4 left-6 text-white">
-                                <p className="font-bold text-lg leading-tight">{DASHBOARD_DATA.lifestyle.title}</p>
-                            </div>
-                        </div>
+                        // Extract color class for the indicator bar (simplified parsing or mapping)
+                        // scent.color is like 'bg-orange-100 text-dopamine-orange'
+                        // We'll use a safer direct style or class extraction if possible, or just default to mapped colors based on ID for robustness in this prompt
+                        let accentColorClass = "bg-gray-300";
+                        if (scent.id === 'white_tea') accentColorClass = "bg-dopamine-orange";
+                        if (scent.id === 'osmanthus') accentColorClass = "bg-lime-500";
+                        if (scent.id === 'rose') accentColorClass = "bg-purple-500";
 
-                        <div className="p-5">
-                            <p className="text-sm text-ink-gray font-medium leading-relaxed mb-4 line-clamp-2">
-                                {DASHBOARD_DATA.lifestyle.subtitle}
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <div className="flex -space-x-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-500">
-                                            {["衣", "食", "住"][i - 1]}
-                                        </div>
-                                    ))}
+                        return (
+                            <div
+                                key={scent.id}
+                                onClick={() => !isLocked && setSelectedScentId(scent.id)}
+                                className={`
+                                    relative h-20 rounded-2xl flex items-center px-5 gap-4 transition-all duration-300 border
+                                    ${isLocked ? 'opacity-60 grayscale cursor-not-allowed bg-gray-50/50 border-transparent' : 'cursor-pointer'}
+                                    ${isSelected
+                                        ? 'bg-white border-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]'
+                                        : 'bg-white/40 hover:bg-white/70 border-white/40 backdrop-blur-md hover:shadow-sm'}
+                                `}
+                            >
+                                {/* Color Indicator */}
+                                <div className={`w-1.5 h-8 rounded-full ${accentColorClass} ${isLocked ? 'npmopacity-30' : ''}`}></div>
+
+                                {/* Text Content */}
+                                <div className="flex-1 flex flex-col justify-center">
+                                    <h4 className={`font-bold text-lg leading-tight ${isSelected ? 'text-ink-gray' : 'text-ink-gray/80'}`}>
+                                        {scent.name.split(' · ')[0]}
+                                    </h4>
+                                    <span className="text-xs text-ink-light font-medium tracking-widest opacity-70">
+                                        {scent.name.split(' · ')[1]}
+                                    </span>
                                 </div>
-                                <button className="w-12 h-12 bg-ink-gray rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform active:scale-95">
-                                    <ArrowRight className="w-5 h-5" />
-                                </button>
+
+                                {/* Right Side: Icon/Status */}
+                                <div className="flex items-center justify-center w-[4.5rem]">
+                                    {isSelected ? (
+                                        <div className="bg-dopamine-orange text-white rounded-full p-1 animate-scale-in shadow-sm">
+                                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                        </div>
+                                    ) : (
+                                        !isLocked && <div className={`w-2 h-2 rounded-full ${accentColorClass} opacity-20`}></div>
+                                    )}
+                                    {isLocked && (
+                                        <div className="flex flex-col items-center gap-0.5 opacity-40">
+                                            <ScanLine className="w-4 h-4 text-ink-gray" />
+                                            <span className="text-[9px] font-bold text-ink-gray transform scale-90">待解锁</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Float Alert */}
-            {activeAlert && (
-                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-ink-gray/90 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-bounce-gentle z-[60]">
-                    <Sparkles className="w-4 h-4 text-dopamine-yellow" />
-                    <span className="text-sm font-bold tracking-wide whitespace-nowrap">{activeAlert}</span>
-                </div>
-            )}
+            {/* Bottom Floating Action Button (Split Layout) */}
+            <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-apple-gray via-apple-gray/90 to-transparent z-40 pointer-events-none flex gap-4 items-center">
+                {/* 1. View Detail Button (Small) */}
+                <div className="relative flex flex-col items-center justify-center">
+                    {/* Bouncing Hint Text (Only when scent selected) */}
+                    {selectedScentId && (
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-ink-gray text-white text-[10px] py-1 px-2 rounded-lg animate-bounce pointer-events-auto shadow-sm z-50">
+                            查看香方
+                            <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-ink-gray"></div>
+                        </div>
+                    )}
 
-            {/* Mood Map Modal */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedScentId) setShowFragranceDetail(true);
+                        }}
+                        disabled={!selectedScentId}
+                        className={`
+                            w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 pointer-events-auto shrink-0
+                            ${selectedScentId
+                                ? 'bg-white text-ink-gray translate-y-0 opacity-100 hover:scale-[1.05] active:scale-95 border border-white/50'
+                                : 'bg-gray-100/50 text-gray-300 translate-y-10 opacity-0'}
+                        `}
+                    >
+                        <Info className="w-6 h-6" strokeWidth={2} />
+                    </button>
+                </div>
+
+                {/* 2. Confirm Button (Big) */}
+                <button
+                    onClick={handleConfirmScent}
+                    disabled={!selectedScentId}
+                    className={`
+                        flex-1 py-4 rounded-[1.5rem] font-bold text-lg shadow-xl transition-all duration-300 pointer-events-auto flex items-center justify-center gap-2
+                        ${selectedScentId
+                            ? 'bg-ink-gray text-white translate-y-0 opacity-100 hover:scale-[1.02] active:scale-95'
+                            : 'bg-gray-200 text-gray-400 translate-y-10 opacity-0'}
+                    `}
+                >
+                    <Flame className="w-5 h-5 text-dopamine-orange fill-current" />
+                    <span className="tracking-[0.2em]">燃起 · 此刻</span>
+                </button>
+            </div>
+
+
+            {/* Mood Map Modal (Kept from original) */}
             {showMoodMap && (
                 <>
                     <div
@@ -510,17 +449,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                 </>
             )}
 
-            {/* Fragrance Box Modal (Drawer) */}
-            {showFragranceBox && (
-                <>
+            {/* Restore: Fragrance Detail & Story Modal */}
+            {(showFragranceDetail || showStory) && (
+                <div
+                    className="fixed inset-0 z-[80] cursor-default"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
                     <div
-                        className="fixed inset-0 bg-ink-gray/30 backdrop-blur-sm z-[80] animate-fade-in"
-                        onClick={() => setShowFragranceBox(false)}
+                        className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in"
+                        onClick={() => { setShowFragranceDetail(false); setShowStory(false); }}
                     />
-                    {/* Drawer Container */}
-                    <div className="fixed bottom-0 left-0 right-0 z-[90] bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-30px_80px_rgba(0,0,0,0.15)] pt-8 transform animate-slide-up transition-transform duration-300 border-t border-white/60 h-[85vh] flex flex-col">
+                    <div className="absolute bottom-0 left-0 right-0 bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-30px_80px_rgba(0,0,0,0.1)] pt-8 transform animate-slide-up transition-transform duration-300 border-t border-white/60 h-[85vh] flex flex-col">
 
-                        {/* Drawer Handle */}
                         <div className="flex justify-center mb-2 shrink-0">
                             <div className="w-12 h-1.5 bg-gray-200 rounded-full opacity-50"></div>
                         </div>
@@ -528,7 +468,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                         {showStory ? (
                             // --- VIEW: Perfumer Story (Deep Dive) ---
                             <div className="animate-fade-in flex flex-col h-full overflow-hidden relative">
-                                {/* Scrollable Story Content */}
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-24">
                                     {/* Top Nav: Back to Details */}
                                     <div className="flex items-center gap-2 mb-6 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setShowStory(false)}>
@@ -536,7 +475,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                         <span className="text-sm font-bold text-ink-gray">返回详情</span>
                                     </div>
 
-                                    <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100/50 mb-10 animate-fade-in">
+                                    <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100/50 mb-10">
                                         <div className="flex flex-col items-center mb-6">
                                             <Quote className="w-8 h-8 text-dopamine-orange opacity-30 mb-2 fill-current" />
                                             <h3 className="text-xl font-bold text-ink-gray">{TEXT_CONTENT.product.modal.story.title}</h3>
@@ -552,7 +491,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                         </div>
 
                                         <div className="mt-8 flex justify-center">
-                                            <img src="https://api.dicebear.com/9.x/micah/svg?seed=perfumer" alt="Perfumer" className="w-10 h-10 rounded-full bg-white p-1 border border-orange-100 shadow-sm opacity-80" />
+                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm border border-orange-100">👩‍🎨</div>
                                         </div>
                                     </div>
                                 </div>
@@ -568,16 +507,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                     </div>
                                 </div>
                             </div>
-                        ) : showFragranceDetail ? (
+                        ) : (
                             // --- VIEW: Product Details ---
                             <div className="animate-fade-in flex flex-col h-full relative">
                                 {/* Scrollable Ingredients Area */}
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-32">
-                                    <div className="flex items-center gap-2 mb-6 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setShowFragranceDetail(false)}>
-                                        <div className="p-1 rounded-full bg-gray-100"><ArrowRight className="w-4 h-4 text-ink-gray rotate-180" /></div>
-                                        <span className="text-sm font-bold text-ink-gray">返回香匣</span>
-                                    </div>
-
                                     <h3 className="text-center font-bold text-2xl text-ink-gray mb-8 flex items-center justify-center gap-2">
                                         <Leaf className="w-6 h-6 text-dopamine-green" />
                                         {TEXT_CONTENT.product.modal.title}
@@ -603,87 +537,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                 {/* FIXED BOTTOM BAR: Perfumer Story Trigger */}
                                 <div
                                     onClick={() => setShowStory(true)}
-                                    className="absolute bottom-0 left-0 right-0 bg-orange-50/90 backdrop-blur-md border-t border-orange-100/50 py-4 px-6 cursor-pointer hover:bg-orange-100/90 transition-colors z-20 group"
+                                    className="absolute bottom-0 left-0 right-0 bg-orange-50/90 backdrop-blur-md border-t border-orange-100/50 py-6 pb-12 px-8 cursor-pointer hover:bg-orange-100/90 transition-colors z-20 group"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-white p-2 rounded-xl shadow-sm text-dopamine-orange group-hover:scale-110 transition-transform">
-                                                <Quote className="w-4 h-4" strokeWidth={2.5} />
+                                        <div className="flex items-center gap-5">
+                                            <div className="bg-white p-3 rounded-2xl shadow-sm text-dopamine-orange group-hover:scale-110 transition-transform">
+                                                <Quote className="w-5 h-5" strokeWidth={2.5} />
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-ink-gray text-sm group-hover:text-dopamine-orange transition-colors">制香师说</span>
-                                                <span className="text-[10px] text-ink-light opacity-70 tracking-wide">午后暖阳与一杯茶</span>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-bold text-ink-gray text-base group-hover:text-dopamine-orange transition-colors">制香师说</span>
+                                                <span className="text-xs text-ink-light opacity-70 tracking-wide">午后暖阳与一杯茶</span>
                                             </div>
                                         </div>
-                                        <ChevronDown className="w-5 h-5 text-ink-light group-hover:translate-y-1 transition-transform" />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            // --- VIEW: List of Fragrances ---
-                            <div className="animate-fade-in flex-1 overflow-y-auto no-scrollbar p-6">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-ink-gray mb-1 flex items-center gap-2">
-                                            <Archive className="w-6 h-6 text-dopamine-orange" strokeWidth={2} />
-                                            小屿的香匣
-                                        </h3>
-                                        <p className="text-xs text-ink-light">今日，燃哪一支？</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 pb-12">
-                                    {FRAGRANCE_LIST.map((fragrance) => (
-                                        <div
-                                            key={fragrance.id}
-                                            onClick={() => fragrance.status === 'owned' && setShowFragranceDetail(true)}
-                                            className={`relative p-5 rounded-3xl flex items-center justify-between border transition-all duration-300 ${fragrance.status === 'owned' ? 'bg-white border-orange-100 shadow-md shadow-orange-50 cursor-pointer hover:bg-orange-50/50 group' : 'bg-gray-50 border-transparent opacity-80'}`}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-serif shadow-inner ${fragrance.color}`}>
-                                                    {fragrance.name.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-ink-gray text-base mb-1">{fragrance.name}</h4>
-                                                    <p className="text-xs text-ink-light font-medium">{fragrance.desc}</p>
-                                                </div>
-                                            </div>
-
-                                            {fragrance.status === 'owned' ? (
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <div className="flex items-center gap-1 text-dopamine-orange bg-orange-50 px-2 py-1 rounded-lg">
-                                                        <CheckCircle2 className="w-3.5 h-3.5" />
-                                                        <span className="text-[10px] font-bold">已启用</span>
-                                                    </div>
-                                                    {/* Added visual cue to click */}
-                                                    <div className="flex items-center text-[10px] text-ink-light/60 font-medium group-hover:text-dopamine-orange transition-colors">
-                                                        <span>查看香方</span>
-                                                        <ChevronRight className="w-3 h-3 ml-0.5" />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleScanClick(fragrance.name); }}
-                                                    className="flex items-center gap-1.5 bg-ink-gray text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-black transition-colors active:scale-95 shadow-lg"
-                                                >
-                                                    <ScanLine className="w-3.5 h-3.5" />
-                                                    解锁
-                                                </button>
-                                            )}
-
-                                            {/* Locked Overlay */}
-                                            {fragrance.status === 'locked' && (
-                                                <div className="absolute top-3 right-3">
-                                                    <Lock className="w-3 h-3 text-gray-300" />
-                                                </div>
-                                            )}
+                                        <div className="bg-white/50 p-2 rounded-full">
+                                            <ChevronDown className="w-5 h-5 text-ink-light group-hover:translate-y-1 transition-transform" />
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
-                </>
+                </div>
             )}
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake } from 'lucide-react';
+import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon } from 'lucide-react';
 import { AppPhase } from './types';
 import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES_BY_MOOD } from './constants';
 import DynamicBackground from './components/DynamicBackground';
@@ -302,29 +302,28 @@ const App: React.FC = () => {
     };
 
     const handleDashboardScenarioClick = (id: string) => {
-        if (id === 'relax') {
-            setVolume(1);
-            setIsPlaying(false);
-            setTreeholeStep(0);
-            setResultStep(0); // Reset result flow
-            setSelectedMood("");
-            setSelectedContext("");
-            setHealingText("");
-            setMyMedicine(null);
-            setAiResult(null);
-            setActiveAmbianceId('default');
-            setCurrentAudioUrl(DEFAULT_AUDIO_URL);
-            setShowSummaryModal(false); // Reset
+        // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)
+        setVolume(1);
+        setIsPlaying(true); // START AUDIO IMMEDIATELY
+        setTreeholeStep(0);
+        setResultStep(0); // Reset result flow
+        setSelectedMood("");
+        setSelectedContext("");
+        setHealingText("");
+        setMyMedicine(null);
+        setAiResult(null);
+        setActiveAmbianceId('original'); // CHANGED: Default to 'original' (White Noise)
+        setCurrentAudioUrl(DEFAULT_AUDIO_URL);
+        setShowSummaryModal(false); // Reset
 
-            // Reset Waterfall State
-            setVisitedCardIds(new Set());
-            setPathPoints([]);
+        // Reset Waterfall State
+        setVisitedCardIds(new Set());
+        setPathPoints([]);
 
-            setShowRitualLayer(true);
-            setFadeRitual(false);
+        setShowRitualLayer(false); // No ritual layer
+        setFadeRitual(false);
 
-            setPhase(AppPhase.RITUAL);
-        }
+        setPhase(AppPhase.IMMERSION); // DIRECT TO IMMERSION
     };
 
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
@@ -386,49 +385,62 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* Ambiance Tuner (Refactored to Segmented Control: Play vs Mute) */}
+            {/* Ambiance Tuner (Refactored: 3 Modes + Independent Mute) */}
             <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
                 <div
                     className="bg-[#E5E5E5]/80 backdrop-blur-xl p-1.5 rounded-full shadow-inner flex items-center gap-1 pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* 1. BenWei (Play Sound) - "Original Taste" */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isPlaying) {
-                                setIsPlaying(true);
-                                if (volume < 0.1) setVolume(1);
-                            }
-                        }}
-                        className={`
-                            px-6 py-3 rounded-full flex items-center justify-center gap-2 transition-all duration-300
-                            ${isPlaying
-                                ? 'bg-white text-ink-gray shadow-sm'
-                                : 'text-ink-gray/40 hover:bg-white/40 hover:text-ink-gray/60'}
-                        `}
-                        title="本味"
-                    >
-                        <Leaf className="w-5 h-5" strokeWidth={1.5} />
-                        <span className="text-sm font-bold tracking-widest font-serif">本味</span>
-                    </button>
+                    {/* Mode Buttons */}
+                    {AMBIANCE_MODES.map((mode) => {
+                        const isActive = activeAmbianceId === mode.id;
 
-                    {/* 2. Mute (Stop Sound) */}
+                        // Icon mapping
+                        let Icon = Leaf;
+                        if (mode.icon === 'moon') Icon = Moon;
+                        if (mode.icon === 'wind') Icon = Wind; // Placeholder map, adjust as needed
+
+                        return (
+                            <button
+                                key={mode.id}
+                                onClick={(e) => {
+                                    handleAmbianceChange(e, mode.id);
+                                    if (!isPlaying) {
+                                        setIsPlaying(true);
+                                        if (volume < 0.1) setVolume(1);
+                                    }
+                                }}
+                                className={`
+                                    py-3 rounded-full flex items-center justify-center gap-1.5 transition-all duration-300
+                                    ${isActive
+                                        ? 'bg-white text-ink-gray shadow-sm transform scale-105 px-5'
+                                        : 'text-ink-gray/40 hover:bg-white/40 hover:text-ink-gray/60 px-3'}
+                                `}
+                            >
+                                {/* We can check id for specific icons if mapped, or use a lookup */}
+                                {mode.id === 'original' && <Leaf className="w-4 h-4" strokeWidth={2} />}
+                                {mode.id === 'sleep' && <Moon className="w-4 h-4" strokeWidth={2} />}
+                                {mode.id === 'meditate' && <Wind className="w-4 h-4" strokeWidth={2} />}
+                                {isActive && <span className="text-xs font-bold tracking-widest font-serif">{mode.label}</span>}
+                            </button>
+                        );
+                    })}
+
+                    {/* Divider */}
+                    <div className="w-px h-6 bg-gray-300 mx-1 opacity-50"></div>
+
+                    {/* Mute Toggle */}
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPlaying) setIsPlaying(false);
-                        }}
+                        onClick={toggleAudio}
                         className={`
-                            px-6 py-3 rounded-full flex items-center justify-center gap-2 transition-all duration-300
+                            w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
                             ${!isPlaying
-                                ? 'bg-white text-ink-gray shadow-sm'
-                                : 'text-ink-gray/40 hover:bg-white/40 hover:text-ink-gray/60'}
+                                ? 'bg-red-50 text-red-400' // Muted state visual
+                                : 'text-ink-gray/60 hover:bg-white/40 hover:text-ink-gray'}
                         `}
-                        title="静默"
+                        title={isPlaying ? "静音" : "播放"}
                     >
-                        <VolumeX className="w-5 h-5" strokeWidth={1.5} />
-                        <span className="text-sm font-bold tracking-widest font-serif">静默</span>
+                        {isPlaying ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                     </button>
                 </div>
             </div>
@@ -736,7 +748,7 @@ const App: React.FC = () => {
             )}
 
             {/* Control Overlay (Right Top) - Menu (Dashboard) - Shared for Immersion & Ritual */}
-            {(phase === AppPhase.IMMERSION || showRitualLayer) && (
+            {(phase === AppPhase.IMMERSION) && (
                 <div className="absolute top-10 right-10 z-[60] opacity-40 hover:opacity-100 transition-opacity duration-1000">
                     <button
                         onClick={(e) => {
@@ -744,9 +756,9 @@ const App: React.FC = () => {
                             setShowRitualLayer(false); // Ensure overlay closes
                             setPhase(AppPhase.DASHBOARD);
                         }}
-                        className={`p-3 backdrop-blur-md rounded-full transition-colors ${showRitualLayer ? 'bg-white/10 hover:bg-white/20' : 'bg-white/40 hover:bg-white'}`}
+                        className={`p-3 backdrop-blur-md rounded-full transition-colors bg-white/40 hover:bg-white`}
                     >
-                        <Menu strokeWidth={1.5} className={`w-5 h-5 ${showRitualLayer ? 'text-white/80' : 'text-ink-gray'}`} />
+                        <Menu strokeWidth={1.5} className={`w-5 h-5 text-ink-gray`} />
                     </button>
                 </div>
             )}
