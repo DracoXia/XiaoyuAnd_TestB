@@ -39,6 +39,11 @@
               'wave': 'wave 8s linear infinite',
               'wave-slow': 'wave 12s linear infinite',
               'bounce-gentle': 'bounceGentle 2s infinite',
+              'card-expand': 'cardExpand 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              'fade-in-up': 'fadeInUp 0.4s ease-out forwards',
+              'scale-in': 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              'breathe': 'breathe 8s ease-in-out infinite',
+              'text-breathe': 'textBreathe 4s ease-in-out infinite',
             },
             keyframes: {
               float: {
@@ -62,6 +67,26 @@
               bounceGentle: {
                 '0%, 100%': { transform: 'translateY(-5%)' },
                 '50%': { transform: 'translateY(0)' },
+              },
+              cardExpand: {
+                '0%': { opacity: '0.7' },
+                '100%': { opacity: '1' },
+              },
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              scaleIn: {
+                '0%': { transform: 'scale(0.95)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              breathe: {
+                '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
+                '50%': { opacity: '1', transform: 'scale(1.03)' },
+              },
+              textBreathe: {
+                '0%, 100%': { opacity: '0.7', transform: 'translateY(0)' },
+                '50%': { opacity: '1', transform: 'translateY(-3px)' },
               }
             }
           },

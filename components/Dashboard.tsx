@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, ChevronRight, Check, ArrowRight, ChevronDown, ChevronUp, Info, Flame, ScanLine } from 'lucide-react';
+import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, Check, ChevronUp, Info, ScanLine, Flame } from 'lucide-react';
 import { MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT, DASHBOARD_DATA } from '../constants'; // Keep DASHBOARD_DATA import to avoid breaking if referenced elsewhere, but won't use it.
 
 interface DashboardProps {
@@ -75,8 +75,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
 
     // New Scent Selection State
     const [selectedScentId, setSelectedScentId] = useState<string | null>(null);
-    const [showFragranceDetail, setShowFragranceDetail] = useState(false); // Restore: View Details
-    const [showStory, setShowStory] = useState(false); // Restore: View Story
+    const [expandedScentId, setExpandedScentId] = useState<string | null>(null); // Track expanded card
+    const [showFragranceDetail, setShowFragranceDetail] = useState(false); // View Details
 
     useEffect(() => {
         const hour = new Date().getHours();
@@ -141,6 +141,67 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
         }
     };
 
+    // Handle card click for expand/collapse
+    const handleCardClick = (scentId: string, status: string) => {
+        if (status === 'locked') return;
+
+        if (expandedScentId === scentId) {
+            // Already expanded - collapse
+            setExpandedScentId(null);
+        } else {
+            // Expand this card and select it
+            setExpandedScentId(scentId);
+            setSelectedScentId(scentId);
+        }
+    };
+
+    // Get accent color class based on scent id
+    const getAccentColorClass = (scentId: string): string => {
+        const colorMap: Record<string, string> = {
+            'tinghe': 'bg-dopamine-pink',
+            'wanxiang': 'bg-dopamine-orange',
+            'xiaoyuan': 'bg-dopamine-green',
+            'white_tea': 'bg-dopamine-orange',
+            'osmanthus': 'bg-lime-500',
+            'rose': 'bg-purple-500',
+        };
+        return colorMap[scentId] || 'bg-gray-300';
+    };
+
+    // Get gradient and theme colors for expanded card based on scent id
+    // Using earth-tone palette inspired by traditional incense aesthetics
+    const getScentTheme = (scentId: string): { gradient: string; bgOverlay: string; textColor: string; cardBg: string } => {
+        const themeMap: Record<string, { gradient: string; bgOverlay: string; textColor: string; cardBg: string }> = {
+            'tinghe': {
+                // Pink tones with earth-clay warmth
+                gradient: 'linear-gradient(145deg, rgba(236, 72, 153, 0.15) 0%, rgba(191, 165, 148, 0.12) 50%, rgba(141, 125, 119, 0.08) 100%)',
+                bgOverlay: 'rgba(236, 72, 153, 0.03)',
+                textColor: '#EC4899',
+                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
+            },
+            'wanxiang': {
+                // Orange-amber with earth-sage grounding
+                gradient: 'linear-gradient(145deg, rgba(255, 179, 64, 0.15) 0%, rgba(148, 155, 138, 0.12) 50%, rgba(141, 125, 119, 0.08) 100%)',
+                bgOverlay: 'rgba(255, 179, 64, 0.03)',
+                textColor: '#F59E0B',
+                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
+            },
+            'xiaoyuan': {
+                // Green with earth-sage harmony
+                gradient: 'linear-gradient(145deg, rgba(34, 197, 94, 0.12) 0%, rgba(148, 155, 138, 0.15) 50%, rgba(141, 125, 119, 0.08) 100%)',
+                bgOverlay: 'rgba(34, 197, 94, 0.03)',
+                textColor: '#22C55E',
+                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
+            },
+        };
+        return themeMap[scentId] || {
+            gradient: 'linear-gradient(145deg, rgba(141, 125, 119, 0.12) 0%, rgba(191, 165, 148, 0.08) 100%)',
+            bgOverlay: '',
+            textColor: '#8d7d77',
+            cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
+        };
+    };
+
     return (
         <div className="absolute inset-0 bg-apple-gray z-50 overflow-hidden animate-fade-in font-sans flex flex-col">
             {/* Header */}
@@ -173,110 +234,137 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                 </div>
 
                 {/* Scent List */}
-                {/* Scent List - Redesigned: Narrow Frosted Strips */}
-                <div className="space-y-3 mb-32">
+                <div className="space-y-3 pb-8">
                     {FRAGRANCE_LIST.map((scent) => {
                         const isSelected = selectedScentId === scent.id;
+                        const isExpanded = expandedScentId === scent.id;
                         const isLocked = scent.status === 'locked';
+                        const accentColorClass = getAccentColorClass(scent.id);
 
-                        // Extract color class for the indicator bar (simplified parsing or mapping)
-                        // scent.color is like 'bg-orange-100 text-dopamine-orange'
-                        // We'll use a safer direct style or class extraction if possible, or just default to mapped colors based on ID for robustness in this prompt
-                        let accentColorClass = "bg-gray-300";
-                        if (scent.id === 'white_tea') accentColorClass = "bg-dopamine-orange";
-                        if (scent.id === 'osmanthus') accentColorClass = "bg-lime-500";
-                        if (scent.id === 'rose') accentColorClass = "bg-purple-500";
+                        const theme = getScentTheme(scent.id);
 
                         return (
                             <div
                                 key={scent.id}
-                                onClick={() => !isLocked && setSelectedScentId(scent.id)}
+                                id={`scent-card-${scent.id}`}
+                                onClick={() => handleCardClick(scent.id, scent.status)}
+                                style={isExpanded ? { background: theme.cardBg } : undefined}
                                 className={`
-                                    relative h-20 rounded-2xl flex items-center px-5 gap-4 transition-all duration-300 border
+                                    relative overflow-hidden transition-all duration-400 ease-out border
                                     ${isLocked ? 'opacity-60 grayscale cursor-not-allowed bg-gray-50/50 border-transparent' : 'cursor-pointer'}
-                                    ${isSelected
+                                    ${isExpanded
+                                        ? 'aspect-[4/5] max-w-[85vw] mx-auto rounded-[2rem] backdrop-blur-xl border-white/60 shadow-xl animate-card-expand z-20 my-4'
+                                        : 'h-20 rounded-2xl'}
+                                    ${isSelected && !isExpanded
                                         ? 'bg-white border-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]'
-                                        : 'bg-white/40 hover:bg-white/70 border-white/40 backdrop-blur-md hover:shadow-sm'}
+                                        : !isExpanded && 'bg-white/40 hover:bg-white/70 border-white/40 backdrop-blur-md hover:shadow-sm'}
                                 `}
                             >
-                                {/* Color Indicator */}
-                                <div className={`w-1.5 h-8 rounded-full ${accentColorClass} ${isLocked ? 'npmopacity-30' : ''}`}></div>
-
-                                {/* Text Content */}
-                                <div className="flex-1 flex flex-col justify-center">
-                                    <h4 className={`font-bold text-lg leading-tight ${isSelected ? 'text-ink-gray' : 'text-ink-gray/80'}`}>
-                                        {scent.name.split(' · ')[0]}
-                                    </h4>
-                                    <span className="text-xs text-ink-light font-medium tracking-widest opacity-70">
-                                        {scent.name.split(' · ')[1]}
-                                    </span>
-                                </div>
-
-                                {/* Right Side: Icon/Status */}
-                                <div className="flex items-center justify-center w-[4.5rem]">
-                                    {isSelected ? (
-                                        <div className="bg-dopamine-orange text-white rounded-full p-1 animate-scale-in shadow-sm">
-                                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                {isExpanded ? (
+                                    // Expanded Card Content - Simplified elegant layout
+                                    <div
+                                        className="p-8 flex flex-col h-full animate-fade-in-up"
+                                        style={{ background: theme.gradient }}
+                                    >
+                                        {/* Top Badge & Check */}
+                                        <div className="flex justify-between items-start mb-auto">
+                                            <div className="flex flex-wrap gap-1.5 max-w-[70%]">
+                                                {scent.ingredients.slice(0, 2).map((ing, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="px-3 py-1 rounded-full text-[10px] font-medium bg-white/40 backdrop-blur-md border border-white/50 text-[#8d7d77]"
+                                                    >
+                                                        {ing}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div
+                                                className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-sm ml-auto shrink-0"
+                                            >
+                                                <Check
+                                                    className="w-5 h-5"
+                                                    strokeWidth={2.5}
+                                                    style={{ color: '#949b8a' }}
+                                                />
+                                            </div>
                                         </div>
-                                    ) : (
-                                        !isLocked && <div className={`w-2 h-2 rounded-full ${accentColorClass} opacity-20`}></div>
-                                    )}
-                                    {isLocked && (
-                                        <div className="flex flex-col items-center gap-0.5 opacity-40">
-                                            <ScanLine className="w-4 h-4 text-ink-gray" />
-                                            <span className="text-[9px] font-bold text-ink-gray transform scale-90">待解锁</span>
+
+                                        {/* Main Content - Title and Story */}
+                                        <div className="mt-8">
+                                            <h4 className="text-3xl font-serif font-bold text-ink-gray leading-tight mb-3">
+                                                {scent.name}
+                                            </h4>
+                                            {scent.story && (
+                                                <p className="text-sm text-[#8d7d77] leading-relaxed max-w-[85%] font-serif">
+                                                    {scent.story}
+                                                </p>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
+
+                                        {/* Bottom Actions: Primary Ignite + Secondary Info */}
+                                        <div className="flex items-center gap-3 pt-8 mt-8">
+                                            {/* Info Button (Small, Secondary) */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowFragranceDetail(true);
+                                                }}
+                                                className="w-14 h-14 flex items-center justify-center bg-white rounded-2xl shadow-lg shadow-ink-gray/5 border border-white/50 text-ink-gray hover:scale-105 transition-transform shrink-0"
+                                            >
+                                                <Info className="w-6 h-6" strokeWidth={1.5} />
+                                            </button>
+
+                                            {/* Ignite Button (Primary, Wide) */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleConfirmScent();
+                                                }}
+                                                className="flex-1 h-16 bg-[#3a3530] text-[#f2ede4] rounded-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-[#3a3530]/90 transition-colors active:scale-95"
+                                            >
+                                                <Flame className="w-5 h-5" strokeWidth={1.5} />
+                                                <span className="font-serif italic text-lg tracking-wide">点一支</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Collapsed Card Content
+                                    <div className="h-full flex items-center px-5 gap-4">
+                                        {/* Color Indicator */}
+                                        <div className={`w-1.5 h-8 rounded-full ${accentColorClass} ${isLocked ? 'opacity-30' : ''}`}></div>
+
+                                        {/* Text Content */}
+                                        <div className="flex-1 flex flex-col justify-center">
+                                            <h4 className={`font-bold text-lg leading-tight ${isSelected ? 'text-ink-gray' : 'text-ink-gray/80'}`}>
+                                                {scent.name.split(' · ')[0]}
+                                            </h4>
+                                            <span className="text-xs text-ink-light font-medium tracking-widest opacity-70">
+                                                {scent.desc}
+                                            </span>
+                                        </div>
+
+                                        {/* Right Side: Icon/Status */}
+                                        <div className="flex items-center justify-center w-[4.5rem]">
+                                            {isSelected ? (
+                                                <div className="bg-dopamine-orange text-white rounded-full p-1 animate-scale-in shadow-sm">
+                                                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                                </div>
+                                            ) : (
+                                                !isLocked && <div className={`w-2 h-2 rounded-full ${accentColorClass} opacity-20`}></div>
+                                            )}
+                                            {isLocked && (
+                                                <div className="flex flex-col items-center gap-0.5 opacity-40">
+                                                    <ScanLine className="w-4 h-4 text-ink-gray" />
+                                                    <span className="text-[9px] font-bold text-ink-gray transform scale-90">待解锁</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
                 </div>
-            </div>
-
-            {/* Bottom Floating Action Button (Split Layout) */}
-            <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-apple-gray via-apple-gray/90 to-transparent z-40 pointer-events-none flex gap-4 items-center">
-                {/* 1. View Detail Button (Small) */}
-                <div className="relative flex flex-col items-center justify-center">
-                    {/* Bouncing Hint Text (Only when scent selected) */}
-                    {selectedScentId && (
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-ink-gray text-white text-[10px] py-1 px-2 rounded-lg animate-bounce pointer-events-auto shadow-sm z-50">
-                            查看香方
-                            <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-ink-gray"></div>
-                        </div>
-                    )}
-
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (selectedScentId) setShowFragranceDetail(true);
-                        }}
-                        disabled={!selectedScentId}
-                        className={`
-                            w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all duration-300 pointer-events-auto shrink-0
-                            ${selectedScentId
-                                ? 'bg-white text-ink-gray translate-y-0 opacity-100 hover:scale-[1.05] active:scale-95 border border-white/50'
-                                : 'bg-gray-100/50 text-gray-300 translate-y-10 opacity-0'}
-                        `}
-                    >
-                        <Info className="w-6 h-6" strokeWidth={2} />
-                    </button>
-                </div>
-
-                {/* 2. Confirm Button (Big) */}
-                <button
-                    onClick={handleConfirmScent}
-                    disabled={!selectedScentId}
-                    className={`
-                        flex-1 py-4 rounded-[1.5rem] font-bold text-lg shadow-xl transition-all duration-300 pointer-events-auto flex items-center justify-center gap-2
-                        ${selectedScentId
-                            ? 'bg-ink-gray text-white translate-y-0 opacity-100 hover:scale-[1.02] active:scale-95'
-                            : 'bg-gray-200 text-gray-400 translate-y-10 opacity-0'}
-                    `}
-                >
-                    <Flame className="w-5 h-5 text-dopamine-orange fill-current" />
-                    <span className="tracking-[0.2em]">燃起 · 此刻</span>
-                </button>
             </div>
 
 
@@ -449,113 +537,106 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                 </>
             )}
 
-            {/* Restore: Fragrance Detail & Story Modal */}
-            {(showFragranceDetail || showStory) && (
+            {/* Fragrance Detail Modal - Redesigned with scent theme */}
+            {showFragranceDetail && selectedScentId && (
                 <div
                     className="fixed inset-0 z-[80] cursor-default"
                     onMouseDown={(e) => e.stopPropagation()}
                 >
                     <div
                         className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in"
-                        onClick={() => { setShowFragranceDetail(false); setShowStory(false); }}
+                        onClick={() => setShowFragranceDetail(false)}
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-30px_80px_rgba(0,0,0,0.1)] pt-8 transform animate-slide-up transition-transform duration-300 border-t border-white/60 h-[85vh] flex flex-col">
-
+                    <div
+                        className="absolute bottom-0 left-0 right-0 bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-30px_80px_rgba(0,0,0,0.1)] pt-8 transform animate-slide-up transition-transform duration-300 border-t border-white/60 h-[85vh] flex flex-col"
+                        style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, ${getScentTheme(selectedScentId).bgOverlay || 'rgba(247,245,242,0.95)'} 100%)` }}
+                    >
                         <div className="flex justify-center mb-2 shrink-0">
                             <div className="w-12 h-1.5 bg-gray-200 rounded-full opacity-50"></div>
                         </div>
 
-                        {showStory ? (
-                            // --- VIEW: Perfumer Story (Deep Dive) ---
-                            <div className="animate-fade-in flex flex-col h-full overflow-hidden relative">
-                                <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-24">
-                                    {/* Top Nav: Back to Details */}
-                                    <div className="flex items-center gap-2 mb-6 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setShowStory(false)}>
-                                        <div className="p-1 rounded-full bg-gray-100"><ArrowRight className="w-4 h-4 text-ink-gray rotate-180" /></div>
-                                        <span className="text-sm font-bold text-ink-gray">返回详情</span>
-                                    </div>
-
-                                    <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100/50 mb-10">
-                                        <div className="flex flex-col items-center mb-6">
-                                            <Quote className="w-8 h-8 text-dopamine-orange opacity-30 mb-2 fill-current" />
-                                            <h3 className="text-xl font-bold text-ink-gray">{TEXT_CONTENT.product.modal.story.title}</h3>
-                                            <p className="text-xs text-ink-light tracking-widest mt-1 uppercase">{TEXT_CONTENT.product.modal.story.subtitle}</p>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            {TEXT_CONTENT.product.modal.story.content.map((paragraph, idx) => (
-                                                <p key={idx} className="font-serif text-ink-gray leading-loose text-justify text-base opacity-90">
-                                                    {paragraph}
-                                                </p>
-                                            ))}
-                                        </div>
-
-                                        <div className="mt-8 flex justify-center">
-                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm border border-orange-100">👩‍🎨</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Return Handle (Up Arrow) - Fixed Bottom */}
+                        {/* Redesigned View: 制香师说 + 安心说明 */}
+                        <div className="animate-fade-in flex flex-col h-full overflow-hidden relative">
+                            <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-24">
+                                {/* Section 1: 制香师说 (First, main content) */}
                                 <div
-                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-10 pb-8 flex justify-center cursor-pointer z-10"
-                                    onClick={() => setShowStory(false)}
+                                    className="p-6 rounded-[2rem] mb-6"
+                                    style={{
+                                        background: `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 8%, rgba(255,255,255,0.6)) 100%)`,
+                                        borderColor: `color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 15%, transparent)`,
+                                        borderWidth: '1px',
+                                        borderStyle: 'solid'
+                                    }}
                                 >
-                                    <div className="flex flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-opacity animate-bounce-gentle">
-                                        <ChevronUp className="w-5 h-5 text-ink-gray" />
-                                        <span className="text-[10px] text-ink-light tracking-widest uppercase">收起故事</span>
+                                    <div className="flex flex-col items-center mb-5">
+                                        <Quote
+                                            className="w-8 h-8 mb-2 fill-current"
+                                            style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.4 }}
+                                        />
+                                        <h3 className="text-lg font-serif font-bold text-ink-gray">{TEXT_CONTENT.product.modal.story.title}</h3>
+                                        <p
+                                            className="text-xs tracking-widest mt-1 uppercase"
+                                            style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.7 }}
+                                        >
+                                            {TEXT_CONTENT.product.modal.story.subtitle}
+                                        </p>
                                     </div>
-                                </div>
-                            </div>
-                        ) : (
-                            // --- VIEW: Product Details ---
-                            <div className="animate-fade-in flex flex-col h-full relative">
-                                {/* Scrollable Ingredients Area */}
-                                <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-32">
-                                    <h3 className="text-center font-bold text-2xl text-ink-gray mb-8 flex items-center justify-center gap-2">
-                                        <Leaf className="w-6 h-6 text-dopamine-green" />
-                                        {TEXT_CONTENT.product.modal.title}
-                                    </h3>
-                                    <p className="font-medium text-base text-ink-gray leading-loose mb-10 text-justify opacity-80">
-                                        {TEXT_CONTENT.product.modal.origin.part1} <b className="text-dopamine-green bg-green-50 px-1 rounded">{TEXT_CONTENT.product.modal.origin.highlight}</b> {TEXT_CONTENT.product.modal.origin.part2}
-                                    </p>
-                                    <div className="space-y-4 mb-12">
-                                        {TEXT_CONTENT.product.modal.ingredients.list.map((item, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-gray-50/80 p-5 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100">
-                                                <span className="text-base font-bold text-ink-gray">{item.name}</span>
-                                                <span className="text-xs font-medium text-ink-light tracking-wide bg-white px-2 py-1 rounded-md shadow-sm">{item.desc}</span>
-                                            </div>
+
+                                    <div className="space-y-4">
+                                        {TEXT_CONTENT.product.modal.story.content.map((paragraph, idx) => (
+                                            <p key={idx} className="font-serif text-ink-gray leading-relaxed text-justify text-sm opacity-90">
+                                                {paragraph}
+                                            </p>
                                         ))}
                                     </div>
 
-                                    {/* Safety Warning (Moved into scroll flow) */}
-                                    <p className="text-[11px] text-center text-ink-light font-medium tracking-wide opacity-40 mb-4">
-                                        {TEXT_CONTENT.product.modal.footer}
+                                    <div className="mt-6 flex justify-center">
+                                        <div
+                                            className="w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm"
+                                            style={{
+                                                backgroundColor: 'white',
+                                                borderColor: `color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 20%, transparent)`,
+                                                borderWidth: '1px',
+                                                borderStyle: 'solid'
+                                            }}
+                                        >👩‍🎨</div>
+                                    </div>
+                                </div>
+
+                                {/* Section 2: 安心说明 (Second, smaller) */}
+                                <div className="bg-white/60 backdrop-blur-sm p-5 rounded-2xl border border-white/40">
+                                    <h4
+                                        className="font-bold text-sm text-ink-gray mb-3 flex items-center gap-2"
+                                        style={{ color: getScentTheme(selectedScentId).textColor }}
+                                    >
+                                        <Leaf className="w-4 h-4" />
+                                        {TEXT_CONTENT.product.modal.title}
+                                    </h4>
+                                    <p className="font-medium text-xs text-ink-gray leading-relaxed text-justify opacity-80">
+                                        {TEXT_CONTENT.product.modal.origin.part1} <b
+                                            style={{ color: getScentTheme(selectedScentId).textColor }}
+                                            className="px-1 rounded"
+                                        >{TEXT_CONTENT.product.modal.origin.highlight}</b> {TEXT_CONTENT.product.modal.origin.part2}
                                     </p>
                                 </div>
 
-                                {/* FIXED BOTTOM BAR: Perfumer Story Trigger */}
-                                <div
-                                    onClick={() => setShowStory(true)}
-                                    className="absolute bottom-0 left-0 right-0 bg-orange-50/90 backdrop-blur-md border-t border-orange-100/50 py-6 pb-12 px-8 cursor-pointer hover:bg-orange-100/90 transition-colors z-20 group"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-5">
-                                            <div className="bg-white p-3 rounded-2xl shadow-sm text-dopamine-orange group-hover:scale-110 transition-transform">
-                                                <Quote className="w-5 h-5" strokeWidth={2.5} />
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-bold text-ink-gray text-base group-hover:text-dopamine-orange transition-colors">制香师说</span>
-                                                <span className="text-xs text-ink-light opacity-70 tracking-wide">午后暖阳与一杯茶</span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white/50 p-2 rounded-full">
-                                            <ChevronDown className="w-5 h-5 text-ink-light group-hover:translate-y-1 transition-transform" />
-                                        </div>
-                                    </div>
+                                {/* Safety Warning */}
+                                <p className="text-[10px] text-center text-ink-light font-medium tracking-wide opacity-40 mt-6">
+                                    {TEXT_CONTENT.product.modal.footer}
+                                </p>
+                            </div>
+
+                            {/* Close Handle */}
+                            <div
+                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-6 flex justify-center cursor-pointer z-10"
+                                onClick={() => setShowFragranceDetail(false)}
+                            >
+                                <div className="flex flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                                    <ChevronUp className="w-5 h-5 text-ink-gray" />
+                                    <span className="text-[10px] text-ink-light tracking-widest uppercase">收起</span>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             )}

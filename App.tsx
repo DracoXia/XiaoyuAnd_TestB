@@ -177,15 +177,21 @@ const App: React.FC = () => {
         setPhase(AppPhase.IMMERSION);
         setFadeRitual(true);
 
+        // Slow fade in: 8 seconds to reach 90% volume
+        const targetVolume = 0.9;
+        const fadeDuration = 8000; // 8 seconds
+        const fadeSteps = 160; // 50ms per step
+        const volumeStep = targetVolume / fadeSteps;
         let currentVol = 0;
+
         const fadeInterval = setInterval(() => {
-            currentVol += 0.05;
-            if (currentVol >= 1) {
-                currentVol = 1;
+            currentVol += volumeStep;
+            if (currentVol >= targetVolume) {
+                currentVol = targetVolume;
                 clearInterval(fadeInterval);
             }
             setVolume(currentVol);
-        }, 100);
+        }, fadeDuration / fadeSteps);
 
         setTimeout(() => {
             setShowRitualLayer(false);
@@ -315,8 +321,6 @@ const App: React.FC = () => {
 
     const handleDashboardScenarioClick = (id: string) => {
         // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)
-        setVolume(1);
-        setIsPlaying(true); // START AUDIO IMMEDIATELY
         setTreeholeStep(0);
         setResultStep(0); // Reset result flow
         setSelectedMood("");
@@ -325,8 +329,18 @@ const App: React.FC = () => {
         setMyMedicine(null);
         setAiResult(null);
         setActiveAmbianceId('original'); // CHANGED: Default to 'original' (White Noise)
-        setCurrentAudioUrl(DEFAULT_AUDIO_URL);
         setShowSummaryModal(false); // Reset
+
+        // Set the active fragrance for scent-specific theming
+        setActiveFragranceId(id);
+
+        // Set audio URL based on fragrance if available
+        const frag = FRAGRANCE_LIST.find(f => f.id === id);
+        if (frag && frag.audioUrl) {
+            setCurrentAudioUrl(frag.audioUrl);
+        } else {
+            setCurrentAudioUrl(DEFAULT_AUDIO_URL);
+        }
 
         // Reset Waterfall State
         setVisitedCardIds(new Set());
@@ -335,7 +349,27 @@ const App: React.FC = () => {
         setShowRitualLayer(false); // No ritual layer
         setFadeRitual(false);
 
+        // Start audio with slow fade in: 8 seconds to reach 90% volume
+        setVolume(0);
+        setIsPlaying(true);
+
+        const targetVolume = 0.9;
+        const fadeDuration = 8000; // 8 seconds
+        const fadeSteps = 160; // 50ms per step
+        const volumeStep = targetVolume / fadeSteps;
+        let currentVol = 0;
+
+        const fadeInterval = setInterval(() => {
+            currentVol += volumeStep;
+            if (currentVol >= targetVolume) {
+                currentVol = targetVolume;
+                clearInterval(fadeInterval);
+            }
+            setVolume(currentVol);
+        }, fadeDuration / fadeSteps);
+
         setPhase(AppPhase.IMMERSION); // DIRECT TO IMMERSION
+        startImmersionTimer();
     };
 
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
@@ -362,35 +396,49 @@ const App: React.FC = () => {
 
     // --- RENDERERS ---
 
-    const renderImmersion = () => (
-        <div
-            className="absolute inset-0 z-30 overflow-y-auto no-scrollbar animate-fade-in flex flex-col font-sans cursor-pointer"
-            onClick={() => { }}
-        >
-            {isAudioLoading && isPlaying && !audioError && volume > 0 && (
-                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/30 backdrop-blur-md pointer-events-none animate-fade-in">
-                    <Loader2 className="w-8 h-8 text-dopamine-orange animate-spin mb-4" />
-                    <p className="text-xs font-bold text-ink-light tracking-[0.3em] animate-pulse">调频中...</p>
-                </div>
-            )}
+    // 根据当前香型获取对应的诗歌
+    const getImmersionPoem = () => {
+        const fragranceId = activeFragranceId;
+        const key = `immersion_${fragranceId}` as keyof typeof TEXT_CONTENT;
+        // 如果有对应香型的诗歌则使用，否则使用默认诗歌
+        if (key in TEXT_CONTENT && Array.isArray((TEXT_CONTENT as any)[key])) {
+            return (TEXT_CONTENT as any)[key] as string[];
+        }
+        return TEXT_CONTENT.immersion as string[];
+    };
 
-            {/* Main Poem Area */}
-            <div className="flex-grow flex flex-col justify-center items-center relative p-8 pt-32 pb-48 min-h-[85vh]">
-                <div className="max-w-md w-full text-center flex flex-col items-center mix-blend-multiply">
-                    {(TEXT_CONTENT.immersion as string[]).map((line, idx) => {
-                        if (line === "") return <div key={idx} className="h-8 md:h-10" />;
-                        return (
-                            <p
-                                key={idx}
-                                className="text-lg md:text-xl font-serif text-ink-gray leading-relaxed tracking-[0.25em] opacity-90 animate-float my-3 drop-shadow-sm"
-                                style={{ animationDelay: `${idx * 0.5}s`, animationDuration: '14s' }}
-                            >
-                                {line}
-                            </p>
-                        );
-                    })}
+    const renderImmersion = () => {
+        const poemLines = getImmersionPoem();
+
+        return (
+            <div
+                className="absolute inset-0 z-30 overflow-y-auto no-scrollbar animate-fade-in flex flex-col font-sans cursor-pointer"
+                onClick={() => { }}
+            >
+                {isAudioLoading && isPlaying && !audioError && volume > 0 && (
+                    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/30 backdrop-blur-md pointer-events-none animate-fade-in">
+                        <Loader2 className="w-8 h-8 text-dopamine-orange animate-spin mb-4" />
+                        <p className="text-xs font-bold text-ink-light tracking-[0.3em] animate-pulse">调频中...</p>
+                    </div>
+                )}
+
+                {/* Main Poem Area */}
+                <div className="flex-grow flex flex-col justify-center items-center relative p-8 pt-32 pb-48 min-h-[85vh]">
+                    <div className="max-w-md w-full text-center flex flex-col items-center mix-blend-multiply">
+                        {poemLines.map((line, idx) => {
+                            if (line === "") return <div key={idx} className="h-8 md:h-10" />;
+                            return (
+                                <p
+                                    key={idx}
+                                    className="text-lg md:text-xl font-serif text-ink-gray leading-relaxed tracking-[0.25em] my-3 drop-shadow-sm animate-text-breathe"
+                                    style={{ animationDelay: `${idx * 0.8}s` }}
+                                >
+                                    {line}
+                                </p>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
 
             {/* Ambiance Tuner (Refactored: 3 Modes + Independent Mute) */}
             <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
@@ -453,7 +501,8 @@ const App: React.FC = () => {
             </div>
 
         </div>
-    );
+        );
+    };
 
     const renderTreehole = () => {
         return (
@@ -733,7 +782,7 @@ const App: React.FC = () => {
 
             {/* Dynamic Background is now ALWAYS visible and light (z-10) */}
             <div className={`absolute inset-0 z-10 transition-opacity duration-1000 opacity-100`}>
-                <DynamicBackground theme={currentTheme} />
+                <DynamicBackground theme={currentTheme} scentId={activeFragranceId} />
             </div>
 
             <AudioPlayer
