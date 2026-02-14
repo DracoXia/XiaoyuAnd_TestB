@@ -9,19 +9,18 @@
   # Functions 目录
   functions = "netlify/functions"
 
-# SPA 路由重定向（所有路由返回 index.html）
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"]}
-
-# NFC API 路由（统一入口）
+# NFC API 路由（统一入口）- 必须放在 SPA 路由之前！
 [[redirects]]
   from = "/api/nfc"
   to = "/.netlify/functions/nfc"
   status = 200
   force = true
+
+# SPA 路由重定向（所有路由返回 index.html）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # 环境变量（如需要，在 Netlify Dashboard 中配置）
 # [build.environment]
