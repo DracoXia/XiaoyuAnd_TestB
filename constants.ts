@@ -12,7 +12,7 @@
 // 资源配置
 export const DEFAULT_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/ShanCha_Mp3.mp3";
 export const TRANSITION_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/female-sigh-450446.mp3";
-export const POUR_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/03/24/audio_097f7d389a.mp3"; // Pouring water sound
+export const POUR_AUDIO_URL = "https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/female-sigh-450446.mp3"; // 暂用叹息声，后续替换为倒水声
 
 export const TEA_GREEN_COLOR = "#9E9D24";
 
