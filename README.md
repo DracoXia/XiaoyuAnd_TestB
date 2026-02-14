@@ -65,6 +65,7 @@
 | AI 服务 | Google Gemini API |
 | 音频引擎 | HTML5 Audio API |
 | 数据分析 | Supabase (PostgreSQL) |
+| 托管平台 | Netlify (SPA + Functions) |
 
 ## 项目结构
 
@@ -83,6 +84,10 @@ xiaoyuAnd/
 │   │   │       ├── analyticsService.ts  # 分析服务
 │   │   │       ├── entryDetection.ts    # NFC 入口检测
 │   │   │       └── userService.ts       # 用户服务
+│   │   ├── netlify/
+│   │   │   └── functions/
+│   │   │       └── nfc.ts         # NFC 动态重定向
+│   │   ├── netlify.toml           # Netlify 配置
 │   │   └── components/
 │   │       ├── AudioPlayer.tsx    # 音频播放器
 │   │       ├── Dashboard.tsx      # 仪表盘
@@ -125,13 +130,14 @@ xiaoyuAnd/
     - 支持 NFC 入口 vs Dashboard 入口区分
     - 完整漏斗追踪: NFC 触发 → 香型确认 → 沉浸时长 → 心情记录 → 社交互动
 *   [Feature] **NFC 入口检测**:
-    - URL 格式: `?nfc=wanxiang&t=timestamp`
+    - Netlify Functions 动态生成时间戳
     - 5 分钟时间窗口验证，防止书签误判
     - 自动清理 URL 参数
 *   [Feature] **关键指标追踪**:
     - `fragrance_confirm`: 香型确认点击（漏斗关键节点）
     - `wasSwitched`: One-Tap Success 指标
     - `entryType`: 入口类型 (nfc/dashboard)
+*   [Infra] **Netlify Functions**: NFC 动态重定向服务
 *   [Docs] **RLS 策略**: 匿名用户 Supabase 访问权限配置
 
 ### v2.3.0 (Immersion Experience)

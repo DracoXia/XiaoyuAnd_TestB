@@ -87,7 +87,6 @@ const App: React.FC = () => {
 
     // --- Entry Detection (NFC vs Dashboard) ---
     const [entryType, setEntryType] = useState<EntryType>('dashboard');
-    const [nfcFragranceId, setNfcFragranceId] = useState<string | null>(null);
     const initialFragranceRef = useRef<string | null>(null); // 记录初始香型，用于判断是否切换
 
     // --- Detect Entry Type on Mount ---
@@ -95,14 +94,9 @@ const App: React.FC = () => {
         const result = detectEntryType();
         setEntryType(result.type);
 
-        if (result.isFromNFC && result.fragranceId) {
-            // NFC 入口：设置香型并进入 Ritual
-            setNfcFragranceId(result.fragranceId);
-            setActiveFragranceId(result.fragranceId);
-            initialFragranceRef.current = result.fragranceId;
-            setPhase(AppPhase.RITUAL);
-            setShowRitualLayer(true);
-
+        if (result.isFromNFC) {
+            // NFC 入口：记录来源，用户在 Dashboard 选择香型
+            console.log('[App] NFC entry detected, showing Dashboard');
             // 清理 URL 中的 NFC 参数
             clearNFCParams();
         }
@@ -400,12 +394,12 @@ const App: React.FC = () => {
         trackEvent({
             eventType: 'fragrance_confirm',
             fragranceId: id,
-            entryType: 'dashboard',
+            entryType: entryType, // 使用检测到的入口类型 (nfc 或 dashboard)
             wasSwitched: false // Dashboard 直接选择，无切换
         });
 
-        // Analytics: Start new session with dashboard entry
-        startSession(id, 'dashboard');
+        // Analytics: Start new session with detected entry type
+        startSession(id, entryType);
         sessionStartRef.current = Date.now(); // Track start time for duration
 
         // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)

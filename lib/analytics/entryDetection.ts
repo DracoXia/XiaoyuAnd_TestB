@@ -9,11 +9,12 @@ import { NFC_VALID_WINDOW_MS } from './types';
 /**
  * 检测当前访问的入口类型
  *
- * NFC URL 格式: ?nfc=wanxiang&t=1707900000
- * - nfc: 香型ID
- * - t: 时间戳（毫秒）
+ * NFC URL 格式: ?nfc=1&t=1707900000
+ * - nfc=1: 标识来自 NFC 扫描
+ * - t: 时间戳（毫秒），由 Netlify Function 动态生成
  *
  * 只有在有效时间窗口内（5分钟）的访问才被识别为 NFC 入口
+ * 过期链接/书签自动识别为 Dashboard 入口
  */
 export function detectEntryType(): EntryDetectionResult {
   if (typeof window === 'undefined') {
@@ -21,19 +22,19 @@ export function detectEntryType(): EntryDetectionResult {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const nfcId = params.get('nfc');
+  const nfcFlag = params.get('nfc');
   const timestamp = params.get('t');
 
   // 没有 NFC 参数，直接访问
-  if (!nfcId) {
+  if (!nfcFlag) {
     return { type: 'dashboard', isFromNFC: false };
   }
 
   // 有 NFC 参数但没有时间戳，可能是旧链接或书签
   if (!timestamp) {
-    // 为了向后兼容，仍然识别为 NFC，但可以记录警告
+    // 向后兼容：仍然识别为 NFC 入口
     console.warn('[Analytics] NFC URL without timestamp, may be a bookmark');
-    return { type: 'nfc', fragranceId: nfcId, isFromNFC: true };
+    return { type: 'nfc', isFromNFC: true };
   }
 
   // 检查时间戳是否在有效窗口内
@@ -42,27 +43,13 @@ export function detectEntryType(): EntryDetectionResult {
   const isValid = currentTime - scanTime < NFC_VALID_WINDOW_MS;
 
   if (isValid) {
-    return { type: 'nfc', fragranceId: nfcId, isFromNFC: true };
+    console.log('[Analytics] Valid NFC entry detected');
+    return { type: 'nfc', isFromNFC: true };
   }
 
   // 过期的 NFC 链接，视为直接访问
+  console.log('[Analytics] Expired NFC link, treating as dashboard entry');
   return { type: 'dashboard', isFromNFC: false };
-}
-
-/**
- * 生成 NFC URL
- * @param fragranceId 香型ID
- * @param baseUrl 基础URL（可选，默认使用当前页面URL）
- */
-export function generateNFCUrl(fragranceId: string, baseUrl?: string): string {
-  const base = baseUrl || (typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}`
-    : '');
-
-  const timestamp = Date.now();
-  const separator = base.includes('?') ? '&' : '?';
-
-  return `${base}${separator}nfc=${encodeURIComponent(fragranceId)}&t=${timestamp}`;
 }
 
 /**
@@ -82,18 +69,14 @@ export function clearNFCParams(): void {
 /**
  * 检查并记录 NFC 入口（用于埋点）
  */
-export function checkAndLogNFCEntry(): { isNFC: boolean; fragranceId?: string } {
+export function checkAndLogNFCEntry(): { isNFC: boolean } {
   const result = detectEntryType();
 
   if (result.isFromNFC) {
-    console.log('[Analytics] NFC entry detected:', {
-      fragranceId: result.fragranceId,
-      timestamp: new Date().toISOString()
-    });
+    console.log('[Analytics] NFC entry detected at:', new Date().toISOString());
   }
 
   return {
-    isNFC: result.isFromNFC,
-    fragranceId: result.fragranceId
+    isNFC: result.isFromNFC
   };
 }

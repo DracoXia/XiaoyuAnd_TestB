@@ -161,28 +161,40 @@ lib/analytics/
 
 ### 6.4 NFC 入口检测
 
-**URL 格式**:
+**架构**:
 ```
-https://app.xiaoyu.com/?nfc=wanxiang&t=1707900000
+NFC 芯片 → /api/nfc → Netlify Function → 重定向（带时间戳）
 ```
 
+**URL 格式**:
+- NFC 写入: `https://xiaoyuandincense.netlify.app/api/nfc`
+- 重定向后: `https://xiaoyuandincense.netlify.app/?nfc=1&t=1707900000`
+
 **检测逻辑**:
-- `nfc`: 香型 ID
-- `t`: 时间戳（毫秒）
+- `nfc=1`: 标识来自 NFC 扫描
+- `t`: 时间戳（毫秒），由 Netlify Function 动态生成
 - 只有 5 分钟内的访问才被识别为 NFC 入口
 - 过期链接/书签自动识别为 Dashboard 入口
 
+**Netlify Function** (`netlify/functions/nfc.ts`):
+```typescript
+// NFC 扫描 → 生成时间戳 → 重定向
+export const handler = async (event) => {
+  const timestamp = Date.now();
+  return {
+    statusCode: 302,
+    headers: { 'Location': `/?nfc=1&t=${timestamp}` }
+  };
+};
+```
+
 **使用方式**:
 ```typescript
-import { detectEntryType, generateNFCUrl } from './lib/analytics';
+import { detectEntryType } from './lib/analytics';
 
 // 检测入口类型
 const result = detectEntryType();
-// { type: 'nfc', fragranceId: 'wanxiang', isFromNFC: true }
-
-// 生成 NFC URL
-const url = generateNFCUrl('wanxiang');
-// https://app.xiaoyu.com/?nfc=wanxiang&t=1707900000
+// { type: 'nfc', isFromNFC: true }
 ```
 
 ### 6.5 验证指标对照
@@ -216,13 +228,14 @@ const url = generateNFCUrl('wanxiang');
     - 完整事件类型定义 (`types.ts`)
     - 分析服务封装 (`analyticsService.ts`)
 *   [Feature] **NFC 入口检测** (`entryDetection.ts`):
+    - Netlify Functions 动态时间戳生成
     - 时间窗口验证 (5 分钟)
-    - 自动生成 NFC URL
     - URL 参数清理
 *   [Feature] **关键埋点**:
     - `fragrance_confirm`: 香型确认（漏斗关键节点）
     - `entryType`: 区分 NFC/Dashboard 入口
     - `wasSwitched`: One-Tap Success 指标
+*   [Infra] **Netlify Functions**: NFC 动态重定向 (`netlify/functions/nfc.ts`)
 *   [Config] **Supabase RLS 策略**: 匿名用户 INSERT/UPDATE/SELECT 权限
 *   [Docs] **PRD 指标核对**: 验证数据库配置与 PRD 关键指标匹配度
 
@@ -339,6 +352,26 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 npm run build
 npm run preview
 ```
+
+### Netlify 部署
+
+**NFC API 路由**:
+```
+/api/nfc/wanxiang  →  Netlify Function  →  重定向到 /?nfc=wanxiang&t=时间戳
+```
+
+**本地测试 Functions**:
+```bash
+# 安装 Netlify CLI
+npm install -g netlify-cli
+
+# 本地运行（包括 Functions）
+netlify dev
+```
+
+**部署**:
+- 推送到 main 分支自动部署
+- PR 自动生成预览链接
 
 ### 验证数据埋点
 ```sql

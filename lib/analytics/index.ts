@@ -27,7 +27,6 @@ export { NFC_VALID_WINDOW_MS } from './types';
 // 入口检测工具
 export {
   detectEntryType,
-  generateNFCUrl,
   clearNFCParams,
   checkAndLogNFCEntry,
 } from './entryDetection';

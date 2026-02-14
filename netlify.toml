@@ -1,0 +1,55 @@
+# Netlify 配置文件
+# 小屿和 (Xiaoyu And) - 智能疗愈伴侣
+
+[build]
+  # 构建命令
+  command = "npm run build"
+  # 发布目录
+  publish = "dist"
+  # Functions 目录
+  functions = "netlify/functions"
+
+# SPA 路由重定向（所有路由返回 index.html）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# NFC API 路由（统一入口）
+[[redirects]]
+  from = "/api/nfc"
+  to = "/.netlify/functions/nfc"
+  status = 200
+  force = true
+
+# 环境变量（如需要，在 Netlify Dashboard 中配置）
+# [build.environment]
+#   GEMINI_API_KEY = ""
+#   VITE_SUPABASE_URL = ""
+#   VITE_SUPABASE_ANON_KEY = ""
+
+# Headers 配置
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# 静态资源缓存
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

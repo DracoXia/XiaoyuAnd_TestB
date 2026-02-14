@@ -215,7 +215,6 @@ export interface AnalyticsConfig {
 
 export interface EntryDetectionResult {
   type: EntryType;
-  fragranceId?: string;
   isFromNFC: boolean;
 }
 
