@@ -26,7 +26,7 @@ export const FRAGRANCE_LIST = [
     status: 'owned',
     color: 'bg-lotus-pink text-lotus-pink-dark', // 莲粉 - 低饱和度粉
     gradient: 'from-lotus-pink/30 to-earth-sand/50',
-    audioUrl: DEFAULT_AUDIO_URL,
+    audioUrl: 'https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/%E5%90%AC%E8%8D%B7_%E7%BC%A9%E6%B7%B7.mp3',
     // 品牌扩展
     fullName: '小屿和·香 听荷',
     vibe: '澄澈：独处的静谧时刻',
@@ -41,7 +41,7 @@ export const FRAGRANCE_LIST = [
     status: 'owned',
     color: 'bg-osmanthus-gold text-osmanthus-gold-dark', // 桂金 - 低饱和度金
     gradient: 'from-osmanthus-gold/30 to-earth-clay/40',
-    audioUrl: DEFAULT_AUDIO_URL, // 临时占位，用户稍后更新
+    audioUrl: 'https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/%E6%99%9A%E5%B7%B7_%E7%BC%A9%E6%B7%B7.mp3',
     fullName: '小屿和·香 晚巷',
     vibe: '安抚：卸下防备的温暖归途',
     story: '我循香而去，想起童年时外婆家的桂花树。点一支，便是记忆里那条温暖的归途。\n\n——制香师说',
@@ -55,7 +55,7 @@ export const FRAGRANCE_LIST = [
     status: 'owned',
     color: 'bg-moss-green text-moss-green-dark', // 苔绿 - 低饱和度绿
     gradient: 'from-moss-green/30 to-earth-sage/50',
-    audioUrl: DEFAULT_AUDIO_URL, // 临时占位，用户稍后更新
+    audioUrl: 'https://xiaoyuand2026-1252955517.cos.ap-guangzhou.myqcloud.com/%E5%B0%8F%E9%99%A2_%E7%BC%A9%E6%B7%B7.mp3',
     fullName: '小屿和·香 小院',
     vibe: '呼吸：都市中的自然野趣',
     story: '城市的喧嚣远去了，只剩下呼吸和心跳。点一支，便是山间躺卧的那个午后。\n\n——制香师说',
