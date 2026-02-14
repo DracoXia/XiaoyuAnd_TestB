@@ -4,7 +4,7 @@
 
 # 小屿和 (Xiaoyu And)
 
-**版本**: v2.4.0 (Analytics & Tracking)
+**版本**: v2.4.1 (NFC Unified Entry)
 
 > "和自己，好好在一起"
 
@@ -123,6 +123,16 @@ xiaoyuAnd/
    ```
 
 ## 版本历史
+
+### v2.4.1 (NFC Unified Entry)
+*   [Refactor] **NFC 架构简化**:
+    - 统一入口：从 `/api/nfc/{fragranceId}` 改为 `/api/nfc`
+    - 移除香型特定 URL，简化 NFC 芯片写入
+    - 使用 `nfc=1` 参数标识 NFC 扫描入口
+*   [Feature] **入口检测验证**:
+    - ✅ 有效 NFC 链接：正确识别为 `nfc` 入口
+    - ✅ 过期链接（>5分钟）：自动识别为 `dashboard` 入口
+    - ✅ 数据库记录正确存储 `entry_type` 字段
 
 ### v2.4.0 (Analytics & Tracking)
 *   [Feature] **数据埋点系统**:

@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.4.0 (Analytics & Tracking)
+**当前版本**: v2.4.1 (NFC Unified Entry)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -161,20 +161,27 @@ lib/analytics/
 
 ### 6.4 NFC 入口检测
 
-**架构**:
+**架构**（统一入口）:
 ```
 NFC 芯片 → /api/nfc → Netlify Function → 重定向（带时间戳）
 ```
 
 **URL 格式**:
-- NFC 写入: `https://xiaoyuandincense.netlify.app/api/nfc`
-- 重定向后: `https://xiaoyuandincense.netlify.app/?nfc=1&t=1707900000`
+- NFC 写入（统一入口）: `https://xiaoyuandincense.netlify.app/api/nfc`
+- 重定向后: `https://xiaoyuandincense.netlify.app/?nfc=1&t=1739534xxx`
 
 **检测逻辑**:
 - `nfc=1`: 标识来自 NFC 扫描
 - `t`: 时间戳（毫秒），由 Netlify Function 动态生成
 - 只有 5 分钟内的访问才被识别为 NFC 入口
 - 过期链接/书签自动识别为 Dashboard 入口
+
+**验证状态** (2026-02-14):
+| 测试场景 | 预期结果 | 实际结果 | 状态 |
+|----------|----------|----------|------|
+| 有效 NFC 链接 | `entry_type = 'nfc'` | ✅ 正确 | 通过 |
+| 过期链接（>5分钟） | `entry_type = 'dashboard'` | ✅ 正确 | 通过 |
+| 数据库记录 | 正确存储 entry_type | ✅ 正确 | 通过 |
 
 **Netlify Function** (`netlify/functions/nfc.ts`):
 ```typescript
@@ -222,7 +229,23 @@ const result = detectEntryType();
 
 ## 8. 版本历史
 
-### v2.4.0 (Analytics & Tracking) - Current
+### v2.4.1 (NFC Unified Entry) - Current
+*   [Refactor] **NFC 架构简化**:
+    - 统一入口：从 `/api/nfc/{fragranceId}` 改为 `/api/nfc`
+    - 移除 `fragranceId` 从 URL，简化 NFC 芯片写入流程
+    - 使用 `nfc=1` 参数标识 NFC 扫描（替代 `nfc=fragranceId`）
+*   [Fix] **Netlify redirects 顺序**:
+    - 修复 `/api/nfc` 被 `/*` 通配符拦截的问题
+    - API 路由必须放在 SPA 路由之前
+*   [Fix] **音频 403 错误**:
+    - 替换失效的 Pixabay CDN 链接
+    - 暂时复用已有腾讯云 COS 音频
+*   [Verify] **入口检测测试通过**:
+    - ✅ 有效 NFC 链接正确识别
+    - ✅ 过期链接正确识别为 dashboard
+    - ✅ Supabase 数据记录正确
+
+### v2.4.0 (Analytics & Tracking)
 *   [Feature] **数据埋点系统**:
     - 基于 Supabase 的匿名用户追踪
     - 完整事件类型定义 (`types.ts`)
@@ -355,10 +378,14 @@ npm run preview
 
 ### Netlify 部署
 
-**NFC API 路由**:
+**NFC API 路由**（统一入口）:
 ```
-/api/nfc/wanxiang  →  Netlify Function  →  重定向到 /?nfc=wanxiang&t=时间戳
+/api/nfc  →  Netlify Function  →  重定向到 /?nfc=1&t=时间戳
 ```
+
+**netlify.toml 配置要点**:
+- API 路由必须放在 SPA 路由（`/*`）之前
+- 使用 `force = true` 确保重定向生效
 
 **本地测试 Functions**:
 ```bash
