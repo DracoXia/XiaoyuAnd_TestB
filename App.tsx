@@ -9,13 +9,20 @@ import Dashboard from './components/Dashboard';
 import { GeminiService, TreeholeResult } from './components/GeminiService';
 import { useAnalytics } from './hooks/useAnalytics';
 import { detectEntryType, clearNFCParams } from './lib/analytics/entryDetection';
-import type { EntryType } from './lib/analytics/types';
+import type { EntryType, AudioMode } from './lib/analytics/types';
+
+// Ambiance ID to AudioMode mapping
+const AMBIANCE_TO_AUDIO_MODE: Record<string, AudioMode> = {
+    'original': 'natural',
+    'sleep': 'pink',
+    'meditate': 'brown',
+};
 
 const App: React.FC = () => {
     const [phase, setPhase] = useState<AppPhase>(AppPhase.DASHBOARD);
 
     // Analytics hook for tracking user interactions
-    const { startSession, endSession, trackEvent, recordMood, getCurrentSessionId } = useAnalytics();
+    const { startSession, endSession, updateAudioMode, trackEvent, recordMood, getCurrentSessionId } = useAnalytics();
 
     // Track session start time for duration calculation
     const sessionStartRef = useRef<number | null>(null);
@@ -257,6 +264,13 @@ const App: React.FC = () => {
         if (sessionId && sessionStartRef.current) {
             const durationSeconds = Math.floor((Date.now() - sessionStartRef.current) / 1000);
             endSession(sessionId, durationSeconds, isPlaying);
+
+            // Analytics: Update final audio mode (silent if muted, otherwise current ambiance)
+            const finalAudioMode: AudioMode = isPlaying
+                ? AMBIANCE_TO_AUDIO_MODE[activeAmbianceId] || 'natural'
+                : 'silent';
+            updateAudioMode(sessionId, finalAudioMode);
+
             sessionStartRef.current = null;
         }
 
@@ -383,10 +397,22 @@ const App: React.FC = () => {
 
     const toggleAudio = (e: React.MouseEvent) => {
         e.stopPropagation();
+        const newIsPlaying = !isPlaying;
+
         // Analytics: Track audio toggle
-        trackEvent({ eventType: 'audio_toggle', isPlaying: !isPlaying, wasManuallyToggled: true });
-        setIsPlaying((prev) => !prev);
-        if (!isPlaying && volume < 0.1) setVolume(1);
+        trackEvent({ eventType: 'audio_toggle', isPlaying: newIsPlaying, wasManuallyToggled: true });
+
+        // Analytics: Update audio mode in database
+        const sessionId = getCurrentSessionId();
+        if (sessionId) {
+            const newAudioMode: AudioMode = newIsPlaying
+                ? AMBIANCE_TO_AUDIO_MODE[activeAmbianceId] || 'natural'
+                : 'silent';
+            updateAudioMode(sessionId, newAudioMode);
+        }
+
+        setIsPlaying(newIsPlaying);
+        if (newIsPlaying && volume < 0.1) setVolume(1);
     };
 
     const handleDashboardScenarioClick = (id: string) => {
@@ -457,7 +483,15 @@ const App: React.FC = () => {
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
         e.stopPropagation();
         // Analytics: Track ambiance mode change
-        trackEvent({ eventType: 'ambiance_change', fromMode: activeAmbianceId, toMode: modeId });
+        trackEvent({ eventType: 'audio_mode_change', fromMode: activeAmbianceId, toMode: modeId });
+
+        // Analytics: Update audio mode in database
+        const sessionId = getCurrentSessionId();
+        if (sessionId && isPlaying) {
+            const audioMode = AMBIANCE_TO_AUDIO_MODE[modeId] || 'natural';
+            updateAudioMode(sessionId, audioMode);
+        }
+
         setActiveAmbianceId(modeId);
         // URL update is now handled by useEffect on activeAmbianceId
     };
@@ -659,133 +693,30 @@ const App: React.FC = () => {
                                                     </p>
                                                 </div>
 
-                                                {/* Optional Input Area */}
-                                                <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-gray-100/50 mb-6">
-                                                    <textarea
-                                                        value={healingText}
-                                                        onChange={(e) => setHealingText(e.target.value)}
-                                                        placeholder="我也想说... (可选)"
-                                                        className="w-full h-20 bg-transparent text-sm text-ink-gray placeholder:text-gray-300 focus:outline-none resize-none font-serif leading-relaxed p-2"
-                                                    />
-                                                </div>
+                                                {/* 用户输入区域已移除 - 仅显示预设回复 */}
                                             </div>
 
-                                            {/* Fixed Bottom Bar */}
+                                            {/* Fixed Bottom Bar - 简化为仅"带着能量出发" */}
                                             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F5F5F7] via-[#F5F5F7] to-transparent z-50 flex flex-col gap-3">
                                                 <button
                                                     onClick={() => {
-                                                        if (healingText.trim()) {
-                                                            // Send Logic
-                                                            const moodGroup = MOCK_ECHOES_BY_MOOD[selectedMood];
-                                                            // @ts-ignore
-                                                            const contextEchoes = moodGroup ? (moodGroup[selectedContext] || moodGroup['说不清'] || []) : [];
-                                                            // @ts-ignore
-                                                            const fallbackEchoes = MOCK_ECHOES_BY_MOOD['小确幸']['说不清'];
-
-                                                            const targetList = (contextEchoes.length > 0) ? contextEchoes : fallbackEchoes;
-                                                            const randomEcho = targetList[Math.floor(Math.random() * targetList.length)];
-                                                            setMatchedEcho(randomEcho);
-                                                            setWaitingForEcho(true);
-                                                            setResultStep(2);
-                                                            setTimeout(() => setWaitingForEcho(false), 2500);
-                                                        } else {
-                                                            // No text? Just animate away
-                                                            setIsFlyingAway(true);
-                                                            setTimeout(() => {
-                                                                setAiResult(null);
-                                                                setPhase(AppPhase.DASHBOARD);
-                                                                setIsFlyingAway(false);
-                                                            }, 1000);
-                                                        }
+                                                        setIsFlyingAway(true);
+                                                        setTimeout(() => {
+                                                            setAiResult(null);
+                                                            setPhase(AppPhase.DASHBOARD);
+                                                            setIsFlyingAway(false);
+                                                        }, 1000);
                                                     }}
-                                                    className={`w-full py-3 rounded-full font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-2
-                                                        ${healingText.trim()
-                                                            ? 'bg-ink-gray text-white shadow-lg'
-                                                            : 'bg-white text-ink-gray border border-gray-200'}
-                                                    `}
+                                                    className="w-full py-3 rounded-full font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 bg-white text-ink-gray border border-gray-200"
                                                 >
-                                                    {healingText.trim() ? (
-                                                        <>
-                                                            <Send className="w-4 h-4" />
-                                                            <span>投递回应</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Sparkles className="w-4 h-4 text-dopamine-orange" />
-                                                            <span>带着能量出发</span>
-                                                        </>
-                                                    )}
+                                                    <Sparkles className="w-4 h-4 text-dopamine-orange" />
+                                                    <span>带着能量出发</span>
                                                 </button>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* STEP 2: Peer Resonance (Echo) */}
-                                    {resultStep === 2 && (
-                                        <div className="w-full h-full flex flex-col animate-fade-in-up items-center justify-center">
-                                            {waitingForEcho ? (
-                                                <div className="text-center space-y-6">
-                                                    <div className="relative w-20 h-20 mx-auto">
-                                                        <div className="absolute inset-0 bg-dopamine-orange/20 rounded-full animate-ping opacity-75"></div>
-                                                        <div className="relative flex items-center justify-center w-full h-full bg-white rounded-full shadow-sm">
-                                                            <Sparkles className="w-8 h-8 text-dopamine-orange animate-pulse" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <p className="text-ink-gray font-serif text-lg tracking-widest">正在寻找同频的信号</p>
-                                                        <p className="text-ink-light text-xs animate-pulse">穿越 {Math.floor(Math.random() * 500 + 100)} 公里的回响...</p>
-                                                    </div>
-                                                </div>
-                                            ) : matchedEcho && (
-                                                <div className="w-full max-w-sm relative">
-                                                    {/* The Card */}
-                                                    <div className="bg-[#FFFBEB] p-8 rounded-[2rem] shadow-2xl border border-[#FCD34D] relative transform rotate-1 transition-all duration-500 hover:rotate-0">
-
-                                                        {/* Top Header: Nickname + Mood Tag */}
-                                                        <div className="absolute -top-3 left-0 right-0 px-6 flex justify-between items-center">
-                                                            {/* Mood Tag */}
-                                                            <div className="bg-white text-dopamine-orange text-[10px] px-3 py-1 rounded-full font-bold shadow-sm border border-dopamine-orange/20 flex items-center gap-1">
-                                                                <span className="opacity-60">#</span> {selectedMood}
-                                                            </div>
-
-                                                            {/* Nickname Tag */}
-                                                            <div className="bg-[#FCD34D] text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm flex items-center gap-1">
-                                                                <Feather className="w-3 h-3" />
-                                                                来自 {matchedEcho.nickname}
-                                                            </div>
-                                                        </div>
-
-                                                        <p className="font-serif text-[17px] text-[#5E5A55] leading-8 text-justify mb-8 pt-6">
-                                                            “{matchedEcho.content}”
-                                                        </p>
-
-                                                        {/* Interactions - Just HUG */}
-                                                        <div className="flex justify-center items-center pt-4 border-t border-[#FCD34D]/30">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setShowFeedbackOverlay(true);
-                                                                    setTimeout(() => {
-                                                                        setIsFlyingAway(true);
-                                                                        setTimeout(() => {
-                                                                            setPhase(AppPhase.DASHBOARD);
-                                                                            setAiResult(null);
-                                                                            setShowFeedbackOverlay(false); // Reset
-                                                                            setIsFlyingAway(false);
-                                                                        }, 1000);
-                                                                    }, 1500); // Show overlay for 1.5s
-                                                                }}
-                                                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/60 hover:bg-white text-amber-500 transition-all shadow-sm hover:scale-110 active:scale-95 group border border-amber-100/50"
-                                                                title="拥抱"
-                                                            >
-                                                                <HeartHandshake className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                                                <span className="text-xs font-bold tracking-widest">给予拥抱</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                    {/* 同伴回响功能已移除 */}
                                 </div>
                             </div>
                         ) : (

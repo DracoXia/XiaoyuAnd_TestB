@@ -38,6 +38,7 @@ describe('useAnalytics', () => {
       getOrCreateUser: vi.fn().mockResolvedValue({ id: 'user-1' }),
       startSession: vi.fn().mockResolvedValue('session-1'),
       endSession: vi.fn().mockResolvedValue(undefined),
+      updateAudioMode: vi.fn().mockResolvedValue(undefined),
       trackEvent: vi.fn().mockResolvedValue(undefined),
       recordMood: vi.fn().mockResolvedValue(undefined),
       updateMoodSelfEvaluation: vi.fn().mockResolvedValue(undefined),

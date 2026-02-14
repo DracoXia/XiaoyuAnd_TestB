@@ -9,6 +9,7 @@ export type {
   User,
   Session,
   EntryType,
+  AudioMode,
   AnalyticsEventType,
   AnalyticsEventData,
   AnalyticsConfig,

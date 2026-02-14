@@ -16,6 +16,15 @@ export interface User {
 
 export type EntryType = 'nfc' | 'dashboard';
 
+/**
+ * 音频模式
+ * - silent: 静默模式，关闭所有声音
+ * - natural: 本味，仅 Layer 1 场景音（默认）
+ * - pink: 粉红噪音，入眠模式
+ * - brown: 棕色噪音，冥想模式
+ */
+export type AudioMode = 'silent' | 'natural' | 'pink' | 'brown';
+
 export interface Session {
   id: string;
   userId: string;
@@ -25,6 +34,7 @@ export interface Session {
   endedAt: Date | null;
   durationSeconds: number | null;
   audioCompleted: boolean | null;
+  audioMode: AudioMode;
   ambianceMode: string | null;
   fragranceSwitched: boolean;
 }
@@ -41,7 +51,7 @@ export type AnalyticsEventType =
   | 'ritual_complete'
   | 'session_end'
   | 'audio_toggle'
-  | 'ambiance_change'
+  | 'audio_mode_change'
   // 心情记录
   | 'mood_select'
   | 'context_select'
@@ -100,10 +110,10 @@ export interface AudioToggleEventData extends BaseEventData {
   wasManuallyToggled: boolean;
 }
 
-export interface AmbianceChangeEventData extends BaseEventData {
-  eventType: 'ambiance_change';
-  fromMode: string;
-  toMode: string;
+export interface AudioModeChangeEventData extends BaseEventData {
+  eventType: 'audio_mode_change';
+  fromMode: AudioMode;
+  toMode: AudioMode;
 }
 
 export interface MoodSelectEventData extends BaseEventData {
@@ -148,7 +158,7 @@ export type AnalyticsEventData =
   | RitualCompleteEventData
   | SessionEndEventData
   | AudioToggleEventData
-  | AmbianceChangeEventData
+  | AudioModeChangeEventData
   | MoodSelectEventData
   | ContextSelectEventData
   | MoodSelfEvalEventData
@@ -191,9 +201,12 @@ export interface IAnalyticsService {
   getCurrentUser(): User | null;
 
   // 会话管理
-  startSession(fragranceId: string, entryType: EntryType): Promise<string>;
+  startSession(fragranceId: string, entryType: EntryType, audioMode?: AudioMode): Promise<string>;
   endSession(sessionId: string, durationSeconds: number, audioCompleted: boolean): Promise<void>;
   getCurrentSessionId(): string | null;
+
+  // 音频模式
+  updateAudioMode(sessionId: string, audioMode: AudioMode): Promise<void>;
 
   // 事件追踪
   trackEvent(eventData: Omit<AnalyticsEventData, 'userId' | 'sessionId' | 'timestamp'>): Promise<void>;

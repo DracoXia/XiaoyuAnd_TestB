@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { EntryType, MoodSelfEvaluation } from '../lib/analytics/types';
+import type { EntryType, MoodSelfEvaluation, AudioMode } from '../lib/analytics/types';
 
 /**
  * 分析服务接口（用于 Hook）
  */
 export interface AnalyticsService {
   getOrCreateUser(): Promise<{ id: string }>;
-  startSession(fragranceId: string, entryType: EntryType): Promise<string>;
+  startSession(fragranceId: string, entryType: EntryType, audioMode?: AudioMode): Promise<string>;
   endSession(sessionId: string, durationSeconds: number, audioCompleted: boolean): Promise<void>;
+  updateAudioMode(sessionId: string, audioMode: AudioMode): Promise<void>;
   trackEvent(eventData: any): Promise<void>;
   recordMood(sessionId: string, mood: string, context: string | null): Promise<void>;
   updateMoodSelfEvaluation(sessionId: string, evaluation: MoodSelfEvaluation): Promise<void>;
@@ -67,8 +68,9 @@ export async function initAnalyticsService(): Promise<AnalyticsService | null> {
 export interface UseAnalyticsReturn {
   isInitialized: boolean;
   userId: string | null;
-  startSession: (fragranceId: string, entryType: EntryType) => Promise<string>;
+  startSession: (fragranceId: string, entryType: EntryType, audioMode?: AudioMode) => Promise<string>;
   endSession: (sessionId: string, durationSeconds: number, audioCompleted: boolean) => Promise<void>;
+  updateAudioMode: (sessionId: string, audioMode: AudioMode) => Promise<void>;
   trackEvent: (eventData: any) => Promise<void>;
   recordMood: (sessionId: string, mood: string, context: string | null) => Promise<void>;
   recordMoodSelfEvaluation: (sessionId: string, evaluation: MoodSelfEvaluation) => Promise<void>;
@@ -188,6 +190,17 @@ export function useAnalytics(): UseAnalyticsReturn {
     return serviceRef.current.updateMoodSelfEvaluation(sessionId, evaluation);
   }, []);
 
+  const updateAudioMode = useCallback(async (
+    sessionId: string,
+    audioMode: AudioMode
+  ): Promise<void> => {
+    if (!serviceRef.current) {
+      console.warn('Analytics service not initialized');
+      return;
+    }
+    return serviceRef.current.updateAudioMode(sessionId, audioMode);
+  }, []);
+
   const getCurrentSessionId = useCallback((): string | null => {
     if (!serviceRef.current) {
       return null;
@@ -200,6 +213,7 @@ export function useAnalytics(): UseAnalyticsReturn {
     userId,
     startSession,
     endSession,
+    updateAudioMode,
     trackEvent,
     recordMood,
     recordMoodSelfEvaluation,

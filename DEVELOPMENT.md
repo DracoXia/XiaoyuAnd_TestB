@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.4.1 (NFC Unified Entry)
+**当前版本**: v2.4.2 (Audio Mode Tracking)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -142,10 +142,19 @@ lib/analytics/
 | 表名 | 用途 | 关键字段 |
 |------|------|---------|
 | `users` | 匿名用户 | `device_id`, `is_anonymous` |
-| `sessions` | 疗愈会话 | `entry_type`, `fragrance_id`, `duration_seconds` |
+| `sessions` | 疗愈会话 | `entry_type`, `fragrance_id`, `duration_seconds`, `audio_mode` |
 | `mood_records` | 心情记录 | `mood_after`, `context`, `self_evaluation` |
 | `social_interactions` | 社交互动 | `interaction_type` (give_hug, etc.) |
 | `analytics_events` | 事件埋点 | `event_type`, `event_data` (JSONB) |
+
+#### sessions.audio_mode 字段
+
+| 值 | 含义 | 对应功能 |
+|---|---|---|
+| `silent` | 静默模式 | 关闭所有声音 |
+| `natural` | 本味 | 仅 Layer 1 场景音（默认） |
+| `pink` | 粉红噪音 | 入眠模式 |
+| `brown` | 棕色噪音 | 冥想模式 |
 
 ### 6.3 事件类型
 
@@ -154,7 +163,7 @@ lib/analytics/
 | `fragrance_confirm` | 香型确认点击 | `fragranceId`, `entryType`, `wasSwitched` |
 | `fragrance_switch` | 香型切换 | `fromFragranceId`, `toFragranceId` |
 | `ritual_complete` | 仪式完成 | `fragranceId` |
-| `ambiance_change` | 氛围模式切换 | `fromMode`, `toMode` |
+| `audio_mode_change` | 音频模式切换 | `fromMode`, `toMode` (silent/natural/pink/brown) |
 | `mood_select` | 心情选择 | `mood` |
 | `context_select` | 场景选择 | `context`, `mood` |
 | `give_hug` | 给予拥抱 | `targetEchoId` |
@@ -211,8 +220,19 @@ const result = detectEntryType();
 | NFC 激活率 | ✅ | `sessions WHERE entry_type='nfc'` |
 | Session Duration | ✅ | `sessions.duration_seconds` |
 | One-Tap Success | ✅ | `analytics_events` → `wasSwitched=false` |
+| Audio Completion Rate | ✅ | `sessions.audio_mode` (静音率 = silent占比) |
 | Mood Shift | ⚠️ 部分 | `mood_records.mood_after` (缺会前心情) |
 | Echo Interaction | ✅ | `social_interactions WHERE type='give_hug'` |
+
+**查询音频模式使用统计**:
+```sql
+SELECT
+  audio_mode,
+  COUNT(*) as count,
+  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+FROM sessions
+GROUP BY audio_mode;
+```
 
 ---
 
@@ -229,7 +249,19 @@ const result = detectEntryType();
 
 ## 8. 版本历史
 
-### v2.4.1 (NFC Unified Entry) - Current
+### v2.4.2 (Audio Mode Tracking) - Current
+*   [Feature] **音频模式追踪**:
+    - 数据库迁移: `sessions` 表新增 `audio_mode` 字段
+    - 支持四种模式: `silent`, `natural`, `pink`, `brown`
+    - 默认值: `natural`
+*   [Analytics] **埋点系统更新**:
+    - `types.ts`: 新增 `AudioMode` 类型
+    - `types.ts`: 新增 `AudioModeChangeEventData` 事件接口
+    - `analyticsService.ts`: `startSession()` 支持 `audioMode` 参数
+    - `analyticsService.ts`: 新增 `updateAudioMode()` 方法
+*   [Docs] **PRD 指标支持**: 现在可以追踪 Audio Completion Rate
+
+### v2.4.1 (NFC Unified Entry)
 *   [Refactor] **NFC 架构简化**:
     - 统一入口：从 `/api/nfc/{fragranceId}` 改为 `/api/nfc`
     - 移除 `fragranceId` 从 URL，简化 NFC 芯片写入流程

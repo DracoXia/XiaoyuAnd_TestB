@@ -212,7 +212,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                         {timeGreeting}
                     </h2>
                 </div>
-                <button
+                {/* 心情记录入口 - 暂时隐藏 */}
+                {/* <button
                     onClick={handleHeartClick}
                     className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
                 >
@@ -222,7 +223,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                         )}
                         <Calendar className="w-6 h-6 text-ink-gray transition-colors group-hover:text-dopamine-pink" strokeWidth={2} />
                     </div>
-                </button>
+                </button> */}
             </div>
 
             {/* Main Content: Scent Selection */}

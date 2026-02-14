@@ -4,7 +4,7 @@
 
 # 小屿和 (Xiaoyu And)
 
-**版本**: v2.4.1 (NFC Unified Entry)
+**版本**: v2.5.0 (Mood Recording Simplified)
 
 > "和自己，好好在一起"
 
@@ -45,10 +45,9 @@
 *   **10分钟疗愈**: 自动淡出并引导至树洞
 
 ### 3. 树洞 (Treehole) - 情绪疗愈
-*   **流程简化**: 心情选择 → 场景识别 → AI 回信 → 同频回响
-*   **小屿的回信**: 基于 Google Gemini 模型生成治愈系回应
-*   **同频回响**: 匹配相似情绪的匿名邻居分享
-*   **给予拥抱**: 与邻居建立温暖的情感连接
+*   **简化流程**: 心情选择 → 场景识别 → AI 回信 → 带着能量出发
+*   **小屿的回信**: 基于 Google Gemini 模型生成治愈系回应（360 条预设回复）
+*   **预设回复矩阵**: 6 种心情 × 6 种情景 = 36 个组合，每组 10 条精选文案
 
 ### 4. 仪式页 (Ritual) - 可选入口
 *   Canvas 烟雾粒子动画引擎
@@ -123,6 +122,16 @@ xiaoyuAnd/
    ```
 
 ## 版本历史
+
+### v2.4.2 (Audio Mode Tracking)
+*   [Feature] **音频模式追踪**:
+    - 数据库新增 `sessions.audio_mode` 字段
+    - 支持四种音频模式: `silent`(静默), `natural`(本味), `pink`(粉红噪音), `brown`(棕色噪音)
+    - 新增 `updateAudioMode()` 方法用于实时更新
+*   [Analytics] **埋点类型更新**:
+    - 新增 `AudioMode` 类型定义
+    - 新增 `audio_mode_change` 事件类型
+    - `startSession()` 支持 `audioMode` 参数
 
 ### v2.4.1 (NFC Unified Entry)
 *   [Refactor] **NFC 架构简化**:

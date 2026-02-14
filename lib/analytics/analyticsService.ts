@@ -2,6 +2,7 @@ import type {
   User,
   Session,
   EntryType,
+  AudioMode,
   AnalyticsEventType,
   AnalyticsEventData,
   MoodSelfEvaluation,
@@ -54,13 +55,18 @@ export class AnalyticsService implements IAnalyticsService {
 
   // === 会话管理 ===
 
-  async startSession(fragranceId: string, entryType: EntryType): Promise<string> {
+  async startSession(
+    fragranceId: string,
+    entryType: EntryType,
+    audioMode: AudioMode = 'natural'
+  ): Promise<string> {
     const user = await this.getOrCreateUser();
 
     const sessionData = {
       user_id: user.id,
       fragrance_id: fragranceId,
       entry_type: entryType,
+      audio_mode: audioMode,
       started_at: new Date().toISOString(),
       fragrance_switched: false,
     };
@@ -95,6 +101,15 @@ export class AnalyticsService implements IAnalyticsService {
     await this.supabase.from('sessions').update(updateData).eq('id', sessionId);
 
     this.clearSession();
+  }
+
+  // === 音频模式 ===
+
+  async updateAudioMode(sessionId: string, audioMode: AudioMode): Promise<void> {
+    await this.supabase
+      .from('sessions')
+      .update({ audio_mode: audioMode })
+      .eq('id', sessionId);
   }
 
   getCurrentSessionId(): string | null {
