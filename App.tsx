@@ -7,9 +7,18 @@ import AudioPlayer from './components/AudioPlayer';
 import Ritual from './components/Ritual';
 import Dashboard from './components/Dashboard';
 import { GeminiService, TreeholeResult } from './components/GeminiService';
+import { useAnalytics } from './hooks/useAnalytics';
+import { detectEntryType, clearNFCParams } from './lib/analytics/entryDetection';
+import type { EntryType } from './lib/analytics/types';
 
 const App: React.FC = () => {
     const [phase, setPhase] = useState<AppPhase>(AppPhase.DASHBOARD);
+
+    // Analytics hook for tracking user interactions
+    const { startSession, endSession, trackEvent, recordMood, getCurrentSessionId } = useAnalytics();
+
+    // Track session start time for duration calculation
+    const sessionStartRef = useRef<number | null>(null);
 
     // Transition Control States
     const [showRitualLayer, setShowRitualLayer] = useState(true); // Is Ritual component mounted?
@@ -75,6 +84,29 @@ const App: React.FC = () => {
     const [residentCount, setResidentCount] = useState(0);
 
     const timerRef = useRef<number | null>(null);
+
+    // --- Entry Detection (NFC vs Dashboard) ---
+    const [entryType, setEntryType] = useState<EntryType>('dashboard');
+    const [nfcFragranceId, setNfcFragranceId] = useState<string | null>(null);
+    const initialFragranceRef = useRef<string | null>(null); // 记录初始香型，用于判断是否切换
+
+    // --- Detect Entry Type on Mount ---
+    useEffect(() => {
+        const result = detectEntryType();
+        setEntryType(result.type);
+
+        if (result.isFromNFC && result.fragranceId) {
+            // NFC 入口：设置香型并进入 Ritual
+            setNfcFragranceId(result.fragranceId);
+            setActiveFragranceId(result.fragranceId);
+            initialFragranceRef.current = result.fragranceId;
+            setPhase(AppPhase.RITUAL);
+            setShowRitualLayer(true);
+
+            // 清理 URL 中的 NFC 参数
+            clearNFCParams();
+        }
+    }, []); // 只在挂载时执行一次
 
     // Sync ref with state
     useEffect(() => {
@@ -153,6 +185,8 @@ const App: React.FC = () => {
     }, [activeAmbianceId]);
 
     const handleFragranceChange = (id: string) => {
+        // Analytics: Track fragrance switch
+        trackEvent({ eventType: 'fragrance_switch', fromFragranceId: activeFragranceId, toFragranceId: id });
         setActiveFragranceId(id);
         // Optional: Change audio URL based on fragrance if defined
         const frag = FRAGRANCE_LIST.find(f => f.id === id);
@@ -170,6 +204,22 @@ const App: React.FC = () => {
     };
 
     const handleRitualComplete = () => {
+        // Analytics: Track fragrance confirm (漏斗关键节点)
+        const wasSwitched = initialFragranceRef.current !== null && initialFragranceRef.current !== activeFragranceId;
+        trackEvent({
+            eventType: 'fragrance_confirm',
+            fragranceId: activeFragranceId,
+            entryType: entryType,
+            wasSwitched: wasSwitched
+        });
+
+        // Analytics: Start session
+        startSession(activeFragranceId, entryType);
+        sessionStartRef.current = Date.now();
+
+        // Analytics: Track ritual completion
+        trackEvent({ eventType: 'ritual_complete', fragranceId: activeFragranceId });
+
         const transitionAudio = new Audio(TRANSITION_AUDIO_URL);
         transitionAudio.volume = 0.9;
         transitionAudio.play().catch(console.warn);
@@ -208,6 +258,14 @@ const App: React.FC = () => {
     };
 
     const handleSessionEnd = () => {
+        // Analytics: End session with duration calculation
+        const sessionId = getCurrentSessionId();
+        if (sessionId && sessionStartRef.current) {
+            const durationSeconds = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+            endSession(sessionId, durationSeconds, isPlaying);
+            sessionStartRef.current = null;
+        }
+
         if (timerRef.current) {
             clearTimeout(timerRef.current);
             timerRef.current = null;
@@ -239,12 +297,22 @@ const App: React.FC = () => {
     };
 
     const handleMoodSelect = (moodLabel: string) => {
+        // Analytics: Track mood selection
+        const sessionId = getCurrentSessionId();
+        trackEvent({ eventType: 'mood_select', mood: moodLabel });
+        if (sessionId) {
+            recordMood(sessionId, moodLabel, null);
+        }
+
         setSelectedMood(moodLabel);
         setTimeout(() => setTreeholeStep(1), 300);
     };
 
     // Step 1: Context Selection -> Triggers AI immediately (Skipping Venting Input)
     const handleContextSelect = async (ctx: string) => {
+        // Analytics: Track context selection
+        trackEvent({ eventType: 'context_select', context: ctx, mood: selectedMood });
+
         setSelectedContext(ctx);
         setResultStep(0); // Ensure start from AI Reply
         setIsGenerating(true);
@@ -262,6 +330,9 @@ const App: React.FC = () => {
         const isValid = await GeminiService.validateHealingContent(healingText);
 
         if (isValid) {
+            // Analytics: Track medicine submission
+            trackEvent({ eventType: 'medicine_submit', contentLength: healingText.length });
+
             // Success: Add to local state
             const newId = 'my-new';
             setMyMedicine({
@@ -292,6 +363,9 @@ const App: React.FC = () => {
     };
 
     const handleHug = (id: string) => {
+        // Analytics: Track hug given
+        trackEvent({ eventType: 'give_hug', targetEchoId: id });
+
         // 1. Update visual count and state
         setEchoes(prev => prev.map(e => {
             if (e.id === id) {
@@ -315,11 +389,25 @@ const App: React.FC = () => {
 
     const toggleAudio = (e: React.MouseEvent) => {
         e.stopPropagation();
+        // Analytics: Track audio toggle
+        trackEvent({ eventType: 'audio_toggle', isPlaying: !isPlaying, wasManuallyToggled: true });
         setIsPlaying((prev) => !prev);
         if (!isPlaying && volume < 0.1) setVolume(1);
     };
 
     const handleDashboardScenarioClick = (id: string) => {
+        // Analytics: Track fragrance confirm (漏斗关键节点)
+        trackEvent({
+            eventType: 'fragrance_confirm',
+            fragranceId: id,
+            entryType: 'dashboard',
+            wasSwitched: false // Dashboard 直接选择，无切换
+        });
+
+        // Analytics: Start new session with dashboard entry
+        startSession(id, 'dashboard');
+        sessionStartRef.current = Date.now(); // Track start time for duration
+
         // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)
         setTreeholeStep(0);
         setResultStep(0); // Reset result flow
@@ -374,6 +462,8 @@ const App: React.FC = () => {
 
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
         e.stopPropagation();
+        // Analytics: Track ambiance mode change
+        trackEvent({ eventType: 'ambiance_change', fromMode: activeAmbianceId, toMode: modeId });
         setActiveAmbianceId(modeId);
         // URL update is now handled by useEffect on activeAmbianceId
     };
@@ -778,7 +868,7 @@ const App: React.FC = () => {
 
 
     return (
-        <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-[#F5F5F7]">
+        <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-background-zen">
 
             {/* Dynamic Background is now ALWAYS visible and light (z-10) */}
             <div className={`absolute inset-0 z-10 transition-opacity duration-1000 opacity-100`}>

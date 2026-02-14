@@ -155,55 +155,55 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
         }
     };
 
-    // Get accent color class based on scent id
+    // Get accent color class based on scent id - 低饱和度大地色调
     const getAccentColorClass = (scentId: string): string => {
         const colorMap: Record<string, string> = {
-            'tinghe': 'bg-dopamine-pink',
-            'wanxiang': 'bg-dopamine-orange',
-            'xiaoyuan': 'bg-dopamine-green',
-            'white_tea': 'bg-dopamine-orange',
-            'osmanthus': 'bg-lime-500',
-            'rose': 'bg-purple-500',
+            'tinghe': 'bg-lotus-pink-dark',      // 莲粉 - #c4a5a0
+            'wanxiang': 'bg-osmanthus-gold-dark', // 桂金 - #c4a890
+            'xiaoyuan': 'bg-moss-green-dark',    // 苔绿 - #9aab9a
+            'white_tea': 'bg-osmanthus-gold-dark',
+            'osmanthus': 'bg-osmanthus-gold-dark',
+            'rose': 'bg-lotus-pink-dark',
         };
-        return colorMap[scentId] || 'bg-gray-300';
+        return colorMap[scentId] || 'bg-earth-taupe';
     };
 
     // Get gradient and theme colors for expanded card based on scent id
-    // Using earth-tone palette inspired by traditional incense aesthetics
+    // 使用低饱和度大地色调，但保持三款香的区分度
     const getScentTheme = (scentId: string): { gradient: string; bgOverlay: string; textColor: string; cardBg: string } => {
         const themeMap: Record<string, { gradient: string; bgOverlay: string; textColor: string; cardBg: string }> = {
             'tinghe': {
-                // Pink tones with earth-clay warmth
-                gradient: 'linear-gradient(145deg, rgba(236, 72, 153, 0.15) 0%, rgba(191, 165, 148, 0.12) 50%, rgba(141, 125, 119, 0.08) 100%)',
-                bgOverlay: 'rgba(236, 72, 153, 0.03)',
-                textColor: '#EC4899',
+                // 莲粉 - 明显的粉色调
+                gradient: 'linear-gradient(145deg, rgba(232, 204, 200, 0.35) 0%, rgba(196, 144, 138, 0.2) 50%, rgba(196, 144, 138, 0.15) 100%)',
+                bgOverlay: 'rgba(232, 204, 200, 0.15)',
+                textColor: '#c4908a', // lotus-pink-dark (更明显的粉)
                 cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
             },
             'wanxiang': {
-                // Orange-amber with earth-sage grounding
-                gradient: 'linear-gradient(145deg, rgba(255, 179, 64, 0.15) 0%, rgba(148, 155, 138, 0.12) 50%, rgba(141, 125, 119, 0.08) 100%)',
-                bgOverlay: 'rgba(255, 179, 64, 0.03)',
-                textColor: '#F59E0B',
+                // 桂金 - 明显的金色调
+                gradient: 'linear-gradient(145deg, rgba(232, 220, 192, 0.35) 0%, rgba(196, 160, 96, 0.25) 50%, rgba(196, 160, 96, 0.15) 100%)',
+                bgOverlay: 'rgba(232, 220, 192, 0.15)',
+                textColor: '#c4a060', // osmanthus-gold-dark (更明显的金)
                 cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
             },
             'xiaoyuan': {
-                // Green with earth-sage harmony
-                gradient: 'linear-gradient(145deg, rgba(34, 197, 94, 0.12) 0%, rgba(148, 155, 138, 0.15) 50%, rgba(141, 125, 119, 0.08) 100%)',
-                bgOverlay: 'rgba(34, 197, 94, 0.03)',
-                textColor: '#22C55E',
+                // 苔绿 - 低饱和度绿色调
+                gradient: 'linear-gradient(145deg, rgba(212, 221, 212, 0.3) 0%, rgba(148, 155, 138, 0.2) 50%, rgba(154, 171, 154, 0.15) 100%)',
+                bgOverlay: 'rgba(212, 221, 212, 0.1)',
+                textColor: '#9aab9a', // moss-green-dark
                 cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
             },
         };
         return themeMap[scentId] || {
             gradient: 'linear-gradient(145deg, rgba(141, 125, 119, 0.12) 0%, rgba(191, 165, 148, 0.08) 100%)',
-            bgOverlay: '',
-            textColor: '#8d7d77',
+            bgOverlay: 'rgba(141, 125, 119, 0.05)',
+            textColor: '#8d7d77', // earth-taupe
             cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
         };
     };
 
     return (
-        <div className="absolute inset-0 bg-apple-gray z-50 overflow-hidden animate-fade-in font-sans flex flex-col">
+        <div className="absolute inset-0 bg-background-zen z-50 overflow-hidden animate-fade-in font-sans flex flex-col">
             {/* Header */}
             <div className="flex-none px-8 py-6 flex justify-between items-center z-20">
                 <div className="flex flex-col">
@@ -573,17 +573,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                             className="w-8 h-8 mb-2 fill-current"
                                             style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.4 }}
                                         />
-                                        <h3 className="text-lg font-serif font-bold text-ink-gray">{TEXT_CONTENT.product.modal.story.title}</h3>
+                                        <h3 className="text-lg font-serif font-bold text-ink-gray">{TEXT_CONTENT.product.modal[selectedScentId]?.story?.title || TEXT_CONTENT.product.modal.tinghe.story.title}</h3>
                                         <p
                                             className="text-xs tracking-widest mt-1 uppercase"
                                             style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.7 }}
                                         >
-                                            {TEXT_CONTENT.product.modal.story.subtitle}
+                                            {TEXT_CONTENT.product.modal[selectedScentId]?.story?.subtitle || TEXT_CONTENT.product.modal.tinghe.story.subtitle}
                                         </p>
                                     </div>
 
                                     <div className="space-y-4">
-                                        {TEXT_CONTENT.product.modal.story.content.map((paragraph, idx) => (
+                                        {(TEXT_CONTENT.product.modal[selectedScentId]?.story?.content || TEXT_CONTENT.product.modal.tinghe.story.content).map((paragraph, idx) => (
                                             <p key={idx} className="font-serif text-ink-gray leading-relaxed text-justify text-sm opacity-90">
                                                 {paragraph}
                                             </p>
@@ -610,19 +610,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                                         style={{ color: getScentTheme(selectedScentId).textColor }}
                                     >
                                         <Leaf className="w-4 h-4" />
-                                        {TEXT_CONTENT.product.modal.title}
+                                        {TEXT_CONTENT.product.common.title}
                                     </h4>
                                     <p className="font-medium text-xs text-ink-gray leading-relaxed text-justify opacity-80">
-                                        {TEXT_CONTENT.product.modal.origin.part1} <b
+                                        {TEXT_CONTENT.product.common.origin.part1} <b
                                             style={{ color: getScentTheme(selectedScentId).textColor }}
                                             className="px-1 rounded"
-                                        >{TEXT_CONTENT.product.modal.origin.highlight}</b> {TEXT_CONTENT.product.modal.origin.part2}
+                                        >{TEXT_CONTENT.product.common.origin.highlight}</b> {TEXT_CONTENT.product.common.origin.part2}
                                     </p>
                                 </div>
 
                                 {/* Safety Warning */}
                                 <p className="text-[10px] text-center text-ink-light font-medium tracking-wide opacity-40 mt-6">
-                                    {TEXT_CONTENT.product.modal.footer}
+                                    {TEXT_CONTENT.product.common.footer}
                                 </p>
                             </div>
 

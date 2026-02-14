@@ -1,0 +1,10 @@
+{
+  "timeout": "10000",
+  "spec": "e2e/**/*.spec.ts",
+  "require": ["ts-node/register"],
+  "reporter": "mochawesome",
+  "reporterOptions": {
+    "reportDir": "test-results",
+    "reportFilename": "mochawesome-report"
+  }
+}

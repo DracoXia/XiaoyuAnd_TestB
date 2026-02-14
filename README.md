@@ -4,7 +4,7 @@
 
 # 小屿和 (Xiaoyu And)
 
-**版本**: v2.3.0 (Immersion Experience)
+**版本**: v2.4.0 (Analytics & Tracking)
 
 > "和自己，好好在一起"
 
@@ -64,6 +64,7 @@
 | UI 组件 | Lucide React (图标) |
 | AI 服务 | Google Gemini API |
 | 音频引擎 | HTML5 Audio API |
+| 数据分析 | Supabase (PostgreSQL) |
 
 ## 项目结构
 
@@ -76,6 +77,12 @@ xiaoyuAnd/
 │   ├── XiaoyuAnd/                 # 主应用
 │   │   ├── App.tsx                # 主应用入口
 │   │   ├── constants.ts           # 常量配置
+│   │   ├── lib/
+│   │   │   └── analytics/         # 数据埋点系统
+│   │   │       ├── types.ts       # 类型定义
+│   │   │       ├── analyticsService.ts  # 分析服务
+│   │   │       ├── entryDetection.ts    # NFC 入口检测
+│   │   │       └── userService.ts       # 用户服务
 │   │   └── components/
 │   │       ├── AudioPlayer.tsx    # 音频播放器
 │   │       ├── Dashboard.tsx      # 仪表盘
@@ -112,17 +119,39 @@ xiaoyuAnd/
 
 ## 版本历史
 
+### v2.4.0 (Analytics & Tracking)
+*   [Feature] **数据埋点系统**:
+    - 基于 Supabase 的匿名用户追踪
+    - 支持 NFC 入口 vs Dashboard 入口区分
+    - 完整漏斗追踪: NFC 触发 → 香型确认 → 沉浸时长 → 心情记录 → 社交互动
+*   [Feature] **NFC 入口检测**:
+    - URL 格式: `?nfc=wanxiang&t=timestamp`
+    - 5 分钟时间窗口验证，防止书签误判
+    - 自动清理 URL 参数
+*   [Feature] **关键指标追踪**:
+    - `fragrance_confirm`: 香型确认点击（漏斗关键节点）
+    - `wasSwitched`: One-Tap Success 指标
+    - `entryType`: 入口类型 (nfc/dashboard)
+*   [Docs] **RLS 策略**: 匿名用户 Supabase 访问权限配置
+
 ### v2.3.0 (Immersion Experience)
+*   [UI] **大地色调系统**:
+    - 全局背景: `#f7f5f2` (禅意背景)
+    - 大地色系: taupe (`#8d7d77`), sage (`#949b8a`), sand (`#f2ede4`), clay (`#bfa594`)
+    - 线香专属色 (低饱和度，保持区分度):
+      - 听荷: lotus-pink (`#e8ccc8`) / lotus-pink-dark (`#c4908a`) - 莲粉
+      - 晚巷: osmanthus-gold (`#e8dcc0`) / osmanthus-gold-dark (`#c4a060`) - 桂金
+      - 小院: moss-green (`#d4ddd4`) / moss-green-dark (`#9aab9a`) - 苔绿
 *   [UI] **Dashboard 卡片展开重构**: 移除底部浮动按钮，将功能整合到卡片内
 *   [UI] **展开卡片内容简化**: 显示故事描述 + "点一支"主按钮 + 香方信息按钮
 *   [UI] **"点一支"按钮样式**: 使用 Flame 图标，深棕黑色背景 (`#3a3530`)，米白色文字 (`#f2ede4`)
 *   [UI] **香方详情弹窗重设计**: 统一香型主题色调，先展示"制香师说"，再展示"安心说明"
 *   [UI] **香型材料标签**: 展开卡片顶部显示前两种香材成分
-*   [Feature] **沉浸页呼吸感渐变背景**: 根据香型显示对应的渐变色（听荷-莲粉、晚巷-桂金、小院-苔绿）
-*   [Feature] **背景呼吸动画**: 8秒循环的渐变色呼吸效果
+*   [Feature] **沉浸页静态渐变背景**: 根据香型显示对应的多层渐变色（听荷-莲粉、晚巷-桂金、小院-苔绿）
+*   [Feature] **背景层叠效果**: 三层径向渐变叠加，营造深度感
 *   [Feature] **文案呼吸动画增强**: 更明显的透明度和位移变化（4秒循环）
 *   [Feature] **音频慢速淡入**: 进入沉浸页时音乐从 0 渐变到 90%，时长 8 秒
-*   [Test] **TDD 测试覆盖**: Dashboard 展开卡片功能测试，90 个测试用例全部通过
+*   [Test] **TDD 测试覆盖**: Dashboard 展开卡片功能测试，所有测试用例通过
 
 ### v2.2.0 (Brand Aligned)
 *   [Brand] **品牌命名规范**: 采用"心理坐标"命名法

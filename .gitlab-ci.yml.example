@@ -1,0 +1,61 @@
+# GitLab CI/CD Example for E2E Tests
+# Rename to .gitlab-ci.yml to use
+
+stages:
+  - install
+  - test
+  - report
+
+variables:
+  PLAYWRIGHT_BROWSERS_PATH: "$CI_PROJECT_DIR/.cache/ms-playwright"
+
+# Install dependencies and Playwright browsers
+install:
+  stage: install
+  image: node:20
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+      - .cache/ms-playwright/
+  script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 day
+
+# Run E2E tests
+e2e:test:
+  stage: test
+  image: node:20
+  dependencies:
+    - install
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 1 week
+  script:
+    - npm run test:e2e
+  only:
+    - merge_requests
+    - main
+
+# Generate and upload test report
+e2e:report:
+  stage: report
+  image: node:20
+  dependencies:
+    - e2e:test
+  artifacts:
+    paths:
+      - playwright-report/
+    expire_in: 1 week
+  script:
+    - echo "Test report available in artifacts"
+  only:
+    - merge_requests
+    - main

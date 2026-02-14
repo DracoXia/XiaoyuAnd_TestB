@@ -11,6 +11,20 @@
         theme: {
           extend: {
             colors: {
+              // 大地色系 - Earth tones
+              'earth-taupe': '#8d7d77',
+              'earth-sage': '#949b8a',
+              'earth-sand': '#f2ede4',
+              'earth-clay': '#bfa594',
+              'background-zen': '#f7f5f2',
+              // 线香专属色 - 低饱和度但保持区分度
+              'lotus-pink': '#e8ccc8', // 莲粉 - 听荷 (略提粉调)
+              'lotus-pink-dark': '#c4908a', // 莲粉深色 (更明显的粉)
+              'osmanthus-gold': '#e8dcc0', // 桂金 - 晚巷 (偏暖金)
+              'osmanthus-gold-dark': '#c4a060', // 桂金深色 (更明显的金)
+              'moss-green': '#d4ddd4', // 苔绿 - 小院
+              'moss-green-dark': '#9aab9a',
+              // 基础色系
               'apple-gray': '#F5F5F7', // Lighter iOS background
               'surface-white': '#FFFFFF',
               'dopamine-orange': '#FFB340', // Warmer, sunnier orange
@@ -81,8 +95,23 @@
                 '100%': { transform: 'scale(1)', opacity: '1' },
               },
               breathe: {
-                '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
-                '50%': { opacity: '1', transform: 'scale(1.03)' },
+                '0%, 100%': { opacity: '0.3', transform: 'scale(1)' },
+                '50%': { opacity: '0.8', transform: 'scale(1.05)' },
+              },
+              flowGradient1: {
+                '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: '0.7' },
+                '25%': { transform: 'translate(10%, -5%) scale(1.1)', opacity: '0.9' },
+                '50%': { transform: 'translate(20%, 5%) scale(1.05)', opacity: '0.8' },
+                '75%': { transform: 'translate(5%, 10%) scale(1.1)', opacity: '0.6' },
+              },
+              flowGradient2: {
+                '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: '0.6' },
+                '33%': { transform: 'translate(-10%, -10%) scale(1.1)', opacity: '0.8' },
+                '66%': { transform: 'translate(-5%, -15%) scale(1.05)', opacity: '0.7' },
+              },
+              flowGradient3: {
+                '0%, 100%': { transform: 'translateY(0) scale(1)', opacity: '0.5' },
+                '50%': { transform: 'translateY(-15%) scale(1.1)', opacity: '0.7' },
               },
               textBreathe: {
                 '0%, 100%': { opacity: '0.7', transform: 'translateY(0)' },
@@ -96,7 +125,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       body {
-        background-color: #F5F5F7; /* Light background */
+        background-color: #f7f5f2; /* Zen background */
         margin: 0;
         overflow: hidden;
         -webkit-font-smoothing: antialiased;

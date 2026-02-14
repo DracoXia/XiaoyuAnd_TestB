@@ -24,13 +24,13 @@ export const FRAGRANCE_LIST = [
     name: '听荷',
     desc: '和清静在一起',
     status: 'owned',
-    color: 'bg-pink-100 text-pink-600',
-    gradient: 'from-pink-50 to-rose-50',
+    color: 'bg-lotus-pink text-lotus-pink-dark', // 莲粉 - 低饱和度粉
+    gradient: 'from-lotus-pink/30 to-earth-sand/50',
     audioUrl: DEFAULT_AUDIO_URL,
     // 品牌扩展
     fullName: '小屿和·香 听荷',
     vibe: '澄澈：独处的静谧时刻',
-    story: '荷塘清晨，露珠在碧绿的荷叶间轻轻滚动。远处的鸟鸣穿透薄雾飘来，在清旷的留白里，此间独坐，听荷声，见清静。',
+    story: '我便在那里坐了许久，想着古人为何独爱莲——大约是因为它懂得在喧嚣之外，守住一份清静。\n\n——制香师说',
     ingredients: ['九品香水莲', '斑斓叶'],
     colorCode: '莲粉'
   },
@@ -38,13 +38,13 @@ export const FRAGRANCE_LIST = [
     id: 'wanxiang', // 晚巷 - 内部代号: 木樨
     name: '晚巷',
     desc: '和温柔在一起',
-    status: 'locked',
-    color: 'bg-amber-100 text-amber-600',
-    gradient: 'from-amber-50 to-yellow-50',
-    audioUrl: '',
+    status: 'owned',
+    color: 'bg-osmanthus-gold text-osmanthus-gold-dark', // 桂金 - 低饱和度金
+    gradient: 'from-osmanthus-gold/30 to-earth-clay/40',
+    audioUrl: DEFAULT_AUDIO_URL, // 临时占位，用户稍后更新
     fullName: '小屿和·香 晚巷',
     vibe: '安抚：卸下防备的温暖归途',
-    story: '老巷深处，秋雨过后，夕阳在青石板上染了一层金。那甜美的气息从某户人家飘出来，让人不由得停下脚步。此间驻足，寻香去，见温柔。',
+    story: '我循香而去，想起童年时外婆家的桂花树。点一支，便是记忆里那条温暖的归途。\n\n——制香师说',
     ingredients: ['桂花', '苏合香', '安息香', '香草'],
     colorCode: '桂金'
   },
@@ -52,13 +52,13 @@ export const FRAGRANCE_LIST = [
     id: 'xiaoyuan', // 小院 - 内部代号: 绿薄荷
     name: '小院',
     desc: '和自在在一起',
-    status: 'locked',
-    color: 'bg-green-100 text-green-600',
-    gradient: 'from-green-50 to-emerald-50',
-    audioUrl: '',
+    status: 'owned',
+    color: 'bg-moss-green text-moss-green-dark', // 苔绿 - 低饱和度绿
+    gradient: 'from-moss-green/30 to-earth-sage/50',
+    audioUrl: DEFAULT_AUDIO_URL, // 临时占位，用户稍后更新
     fullName: '小屿和·香 小院',
     vibe: '呼吸：都市中的自然野趣',
-    story: '山间小院，苔藓在石阶上静静生长。薄荷与迷迭香随风摇曳，草叶沙沙。在绿色的呼吸里，此间躺卧，听风过，见自在。',
+    story: '城市的喧嚣远去了，只剩下呼吸和心跳。点一支，便是山间躺卧的那个午后。\n\n——制香师说',
     ingredients: ['苔藓', '薄荷油', '百里香', '迷迭香', '鼠尾草'],
     colorCode: '苔绿'
   }
@@ -155,7 +155,8 @@ export const TEXT_CONTENT = {
   ],
   product: {
     entryLabel: "关于这支香",
-    modal: {
+    // 公共部分
+    common: {
       title: "安心入座的理由",
       origin: {
         title: "[ 关于这一缕香的由来 ]",
@@ -164,31 +165,86 @@ export const TEXT_CONTENT = {
         part2: "亲手拣选、炮制，将古老的手艺化作指尖的温度。",
         part3: "每一道工序的严苛与纯净，皆已通过国家标准的安全验证。我们敬畏手艺，亦如我们珍视你的每一口呼吸。"
       },
-      ingredients: {
-        title: "[ 甄选 · 自然原材 ]",
-        list: [
-          { name: "九品香水莲", desc: "清雅水生 · 莲心" },
-          { name: "斑斓叶", desc: "草本幽香 · 点缀" }
-        ]
-      },
-      // New Story Section
-      story: {
-        title: "制香师说",
-        subtitle: "听荷的由来",
-        content: [
-          "长明岛有一片荷花，政府想要发展那里的旅游。",
-          "爱莲说，莲花圣洁，自古文人对莲花有着独特的爱恋。",
-          "这支香的灵感，便来自那片荷塘的清晨。",
-          "露珠在荷叶上滚动，阳光穿透薄雾，远处传来若有若无的鸟鸣。",
-          "九品香水莲的清雅，配上斑斓叶的草本气息……",
-          "我将这份独处的静谧，都揉进了这支香里。"
-        ]
-      },
       reminder: {
         title: "[ 温柔提醒 ]",
         text: "点一支香时，请为空间留一道透气的缝隙。在流动的空气里，草木的韵味方能舒展，最是动人。"
       },
       footer: "( 请在通风处使用，并远离易燃物 )"
+    },
+    // 按香型 ID 索引的内容
+    modal: {
+      // 听荷
+      tinghe: {
+        ingredients: {
+          title: "[ 甄选 · 自然原材 ]",
+          list: [
+            { name: "九品香水莲", desc: "清雅水生 · 莲心" },
+            { name: "斑斓叶", desc: "草本幽香 · 点缀" }
+          ]
+        },
+        story: {
+          title: "制香师说",
+          subtitle: "听荷的由来",
+          content: [
+            "长明岛有一片荷塘，清晨时分最是动人。",
+            "薄雾还在水面萦绕，露珠已在荷叶上悄悄滚动，远处的鸟鸣若有若无地飘来。",
+            "我便在那里坐了许久，想着古人为何独爱莲——",
+            "大约是因为它懂得在喧嚣之外，守住一份清静。",
+            "九品香水莲的雅，斑斓叶的幽，都被我揉进了这支香里。",
+            "点一支，便是荷塘边独坐的那个清晨。"
+          ]
+        }
+      },
+      // 晚巷
+      wanxiang: {
+        ingredients: {
+          title: "[ 甄选 · 自然原材 ]",
+          list: [
+            { name: "桂花", desc: "甜美花果 · 心" },
+            { name: "苏合香", desc: "树脂暖香 · 魂" },
+            { name: "安息香", desc: "甜美树脂 · 底" },
+            { name: "香草", desc: "奶香点缀 · 尾" }
+          ]
+        },
+        story: {
+          title: "制香师说",
+          subtitle: "晚巷的由来",
+          content: [
+            "老巷深处，秋雨过后，夕阳在青石板上染了一层金。",
+            "那甜美的气息从某户人家飘出来，让人不由得停下脚步。",
+            "我循香而去，想起童年时外婆家的桂花树。",
+            "桂花的暖、苏合香的柔、安息香的安……",
+            "都被我揉进了这支香里。",
+            "点一支，便是记忆里那条温暖的归途。"
+          ]
+        }
+      },
+      // 小院
+      xiaoyuan: {
+        ingredients: {
+          title: "[ 甄选 · 自然原材 ]",
+          list: [
+            { name: "苔藓", desc: "青苔气息 · 基" },
+            { name: "薄荷油", desc: "清凉草本 · 顶" },
+            { name: "百里香", desc: "草本清香 · 心" },
+            { name: "迷迭香", desc: "木质辛香 · 魂" },
+            { name: "鼠尾草", desc: "大地气息 · 底" }
+          ]
+        },
+        story: {
+          title: "制香师说",
+          subtitle: "小院的由来",
+          content: [
+            "山间小院，苔藓在石阶上静静生长。",
+            "薄荷与迷迭香随风摇曳，草叶沙沙。",
+            "我躺在院子里，看着云朵慢悠悠地飘过。",
+            "城市的喧嚣远去了，只剩下呼吸和心跳。",
+            "苔藓的绿、薄荷的清、鼠尾草的野……",
+            "都被我揉进了这支香里。",
+            "点一支，便是山间躺卧的那个午后。"
+          ]
+        }
+      }
     }
   }
 };
@@ -373,32 +429,32 @@ export const DASHBOARD_DATA = {
       subtitle: '和清静在一起',
       iconType: 'leaf',
       status: 'active',
-      gradient: 'from-pink-50 to-rose-50',
-      accent: 'text-pink-600',
-      shadow: 'shadow-pink-200/50',
-      iconBg: 'bg-pink-100'
+      gradient: 'from-lotus-pink/20 to-earth-sand/30',
+      accent: 'text-lotus-pink-dark',
+      shadow: 'shadow-lotus-pink/30',
+      iconBg: 'bg-lotus-pink/50'
     },
     {
       id: 'wanxiang',
       title: '晚巷',
       subtitle: '和温柔在一起',
       iconType: 'flame',
-      status: 'locked',
-      gradient: 'from-amber-50 to-yellow-50',
-      accent: 'text-amber-600',
-      shadow: 'shadow-amber-200/50',
-      iconBg: 'bg-amber-100'
+      status: 'owned',
+      gradient: 'from-osmanthus-gold/20 to-earth-clay/30',
+      accent: 'text-osmanthus-gold-dark',
+      shadow: 'shadow-osmanthus-gold/30',
+      iconBg: 'bg-osmanthus-gold/50'
     },
     {
       id: 'xiaoyuan',
       title: '小院',
       subtitle: '和自在在一起',
       iconType: 'moon',
-      status: 'locked',
-      gradient: 'from-green-50 to-emerald-50',
-      accent: 'text-green-600',
-      shadow: 'shadow-green-200/50',
-      iconBg: 'bg-green-100'
+      status: 'owned',
+      gradient: 'from-moss-green/20 to-earth-sage/30',
+      accent: 'text-moss-green-dark',
+      shadow: 'shadow-moss-green/30',
+      iconBg: 'bg-moss-green/50'
     },
     {
       id: 'coming',
@@ -406,10 +462,10 @@ export const DASHBOARD_DATA = {
       subtitle: '更多香型',
       iconType: 'sparkles',
       status: 'locked',
-      gradient: 'from-slate-50 to-gray-50',
-      accent: 'text-slate-500',
-      shadow: 'shadow-slate-200/50',
-      iconBg: 'bg-slate-100'
+      gradient: 'from-earth-sand/30 to-earth-taupe/20',
+      accent: 'text-earth-taupe',
+      shadow: 'shadow-earth-taupe/30',
+      iconBg: 'bg-earth-sand/50'
     },
   ] as const,
   lifestyle: {

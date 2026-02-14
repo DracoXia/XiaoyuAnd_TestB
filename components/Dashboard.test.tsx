@@ -6,8 +6,8 @@ import Dashboard from './Dashboard';
 // Mock the constants module
 vi.mock('../constants', () => ({
   MOOD_OPTIONS: [
-    { id: 'calm', label: '想静静', icon: '🌤️', style: 'bg-green-100' },
-    { id: 'anxious', label: '有点焦虑', icon: '🌧️', style: 'bg-purple-100' }
+    { id: 'calm', label: '想静静', icon: '🌤️', style: 'bg-moss-green/50 text-moss-green-dark' },
+    { id: 'anxious', label: '有点焦虑', icon: '🌧️', style: 'bg-dopamine-purple/10 text-dopamine-purple' }
   ],
   CONTEXT_OPTIONS: ['工作/学业', '感情'],
   FRAGRANCE_LIST: [
@@ -16,8 +16,8 @@ vi.mock('../constants', () => ({
       name: '听荷',
       desc: '和清静在一起',
       status: 'owned',
-      color: 'bg-pink-100 text-pink-600',
-      gradient: 'from-pink-50 to-rose-50',
+      color: 'bg-lotus-pink text-lotus-pink-dark',
+      gradient: 'from-lotus-pink/30 to-earth-sand/50',
       audioUrl: 'test.mp3',
       fullName: '小屿和·香 听荷',
       vibe: '澄澈：独处的静谧时刻',
@@ -29,9 +29,9 @@ vi.mock('../constants', () => ({
       id: 'wanxiang',
       name: '晚巷',
       desc: '和温柔在一起',
-      status: 'locked',
-      color: 'bg-amber-100 text-amber-600',
-      gradient: 'from-amber-50 to-yellow-50',
+      status: 'owned',
+      color: 'bg-osmanthus-gold text-osmanthus-gold-dark',
+      gradient: 'from-osmanthus-gold/30 to-earth-clay/40',
       audioUrl: '',
       fullName: '小屿和·香 晚巷',
       vibe: '安抚：卸下防备的温暖归途',
@@ -42,12 +42,26 @@ vi.mock('../constants', () => ({
   ],
   TEXT_CONTENT: {
     product: {
-      modal: {
-        title: '安心入座的理由',
-        origin: { part1: 'test', highlight: 'test', part2: 'test' },
-        ingredients: { list: [] },
-        story: { title: 'test', subtitle: 'test', content: [] },
+      entryLabel: "关于这支香",
+      common: {
+        title: "安心入座的理由",
+        origin: { title: "test", part1: 'test', highlight: 'test', part2: 'test', part3: 'test' },
+        reminder: { title: "test", text: 'test' },
         footer: 'test'
+      },
+      modal: {
+        tinghe: {
+          ingredients: { title: 'test', list: [] },
+          story: { title: 'test', subtitle: 'test', content: [] }
+        },
+        wanxiang: {
+          ingredients: { title: 'test', list: [] },
+          story: { title: 'test', subtitle: 'test', content: [] }
+        },
+        xiaoyuan: {
+          ingredients: { title: 'test', list: [] },
+          story: { title: 'test', subtitle: 'test', content: [] }
+        }
       }
     }
   },
@@ -119,22 +133,39 @@ describe('Dashboard - 香型卡片展开功能', () => {
       const user = userEvent.setup();
       render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
 
-      // 首先展开听荷（如果有多个 owned 香型）
-      const cards = screen.getAllByText(/和清静在一起|和温柔在一起/);
+      // 首先展开听荷
+      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
+      if (tingheCard) {
+        await user.click(tingheCard);
+      }
 
-      // 只有一个 owned 状态的香型可以展开
-      // 这个测试验证同一时间只能有一个卡片展开
-      expect(cards.length).toBeGreaterThan(0);
+      // 听荷应该展开
+      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
+
+      // 然后展开晚巷 - 听荷应该自动收起
+      const wanxiangCard = screen.getByText('晚巷').closest('div[class*="cursor-pointer"]');
+      if (wanxiangCard) {
+        await user.click(wanxiangCard);
+      }
+
+      // 听荷的故事应该消失（收起了）
+      expect(screen.queryByText(/荷塘清晨/)).not.toBeInTheDocument();
+      // 晚巷的故事应该出现
+      expect(screen.getByText(/老巷深处/)).toBeInTheDocument();
     });
 
-    it('锁定的香型卡片不应该能展开', async () => {
+    it('已拥有的香型卡片应该可以展开', async () => {
       const user = userEvent.setup();
       render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
 
-      // 晚巷是锁定的 - 找到包含晚巷文字的卡片容器
-      const lockedCard = screen.getByText('晚巷').closest('[class*="opacity-60"]');
-      expect(lockedCard).toBeInTheDocument();
-      expect(lockedCard).toHaveClass('grayscale');
+      // 晚巷现在是 owned 状态 - 可以点击展开
+      const wanxiangCard = screen.getByText('晚巷').closest('div[class*="cursor-pointer"]');
+      if (wanxiangCard) {
+        await user.click(wanxiangCard);
+      }
+
+      // 展开后应该显示故事
+      expect(screen.getByText(/老巷深处/)).toBeInTheDocument();
     });
   });
 

@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.3.0 (Immersion Experience)
+**当前版本**: v2.4.0 (Analytics & Tracking)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -123,7 +123,81 @@ App.tsx
 
 ---
 
-## 6. 资源配置
+## 6. 数据埋点系统
+
+### 6.1 架构概览
+
+```
+lib/analytics/
+├── types.ts              # 类型定义和事件接口
+├── analyticsService.ts   # 核心分析服务
+├── entryDetection.ts     # NFC 入口检测工具
+├── userService.ts        # 匿名用户管理
+├── supabaseClient.ts     # Supabase 客户端
+└── index.ts              # 公共 API 导出
+```
+
+### 6.2 数据库表结构
+
+| 表名 | 用途 | 关键字段 |
+|------|------|---------|
+| `users` | 匿名用户 | `device_id`, `is_anonymous` |
+| `sessions` | 疗愈会话 | `entry_type`, `fragrance_id`, `duration_seconds` |
+| `mood_records` | 心情记录 | `mood_after`, `context`, `self_evaluation` |
+| `social_interactions` | 社交互动 | `interaction_type` (give_hug, etc.) |
+| `analytics_events` | 事件埋点 | `event_type`, `event_data` (JSONB) |
+
+### 6.3 事件类型
+
+| 事件 | 触发时机 | 数据字段 |
+|------|---------|---------|
+| `fragrance_confirm` | 香型确认点击 | `fragranceId`, `entryType`, `wasSwitched` |
+| `fragrance_switch` | 香型切换 | `fromFragranceId`, `toFragranceId` |
+| `ritual_complete` | 仪式完成 | `fragranceId` |
+| `ambiance_change` | 氛围模式切换 | `fromMode`, `toMode` |
+| `mood_select` | 心情选择 | `mood` |
+| `context_select` | 场景选择 | `context`, `mood` |
+| `give_hug` | 给予拥抱 | `targetEchoId` |
+
+### 6.4 NFC 入口检测
+
+**URL 格式**:
+```
+https://app.xiaoyu.com/?nfc=wanxiang&t=1707900000
+```
+
+**检测逻辑**:
+- `nfc`: 香型 ID
+- `t`: 时间戳（毫秒）
+- 只有 5 分钟内的访问才被识别为 NFC 入口
+- 过期链接/书签自动识别为 Dashboard 入口
+
+**使用方式**:
+```typescript
+import { detectEntryType, generateNFCUrl } from './lib/analytics';
+
+// 检测入口类型
+const result = detectEntryType();
+// { type: 'nfc', fragranceId: 'wanxiang', isFromNFC: true }
+
+// 生成 NFC URL
+const url = generateNFCUrl('wanxiang');
+// https://app.xiaoyu.com/?nfc=wanxiang&t=1707900000
+```
+
+### 6.5 验证指标对照
+
+| PRD 指标 | 数据库支持 | 查询方式 |
+|---------|-----------|---------|
+| NFC 激活率 | ✅ | `sessions WHERE entry_type='nfc'` |
+| Session Duration | ✅ | `sessions.duration_seconds` |
+| One-Tap Success | ✅ | `analytics_events` → `wasSwitched=false` |
+| Mood Shift | ⚠️ 部分 | `mood_records.mood_after` (缺会前心情) |
+| Echo Interaction | ✅ | `social_interactions WHERE type='give_hug'` |
+
+---
+
+## 7. 资源配置
 
 | 资源类型 | 用途 | 来源 |
 | :--- | :--- | :--- |
@@ -134,9 +208,32 @@ App.tsx
 
 ---
 
-## 7. 版本历史
+## 8. 版本历史
 
-### v2.3.0 (Immersion Experience) - Current
+### v2.4.0 (Analytics & Tracking) - Current
+*   [Feature] **数据埋点系统**:
+    - 基于 Supabase 的匿名用户追踪
+    - 完整事件类型定义 (`types.ts`)
+    - 分析服务封装 (`analyticsService.ts`)
+*   [Feature] **NFC 入口检测** (`entryDetection.ts`):
+    - 时间窗口验证 (5 分钟)
+    - 自动生成 NFC URL
+    - URL 参数清理
+*   [Feature] **关键埋点**:
+    - `fragrance_confirm`: 香型确认（漏斗关键节点）
+    - `entryType`: 区分 NFC/Dashboard 入口
+    - `wasSwitched`: One-Tap Success 指标
+*   [Config] **Supabase RLS 策略**: 匿名用户 INSERT/UPDATE/SELECT 权限
+*   [Docs] **PRD 指标核对**: 验证数据库配置与 PRD 关键指标匹配度
+
+### v2.3.0 (Immersion Experience)
+*   [UI] **大地色调系统**:
+    - 全局背景: `#f7f5f2` (禅意背景)
+    - 大地色系: taupe (`#8d7d77`), sage (`#949b8a`), sand (`#f2ede4`), clay (`#bfa594`)
+    - 线香专属色 (低饱和度，保持区分度):
+      - 听荷: lotus-pink (`#e8ccc8`) / lotus-pink-dark (`#c4908a`) - 莲粉
+      - 晚巷: osmanthus-gold (`#e8dcc0`) / osmanthus-gold-dark (`#c4a060`) - 桂金
+      - 小院: moss-green (`#d4ddd4`) / moss-green-dark (`#9aab9a`) - 苔绿
 *   [UI] **Dashboard 卡片展开重构**:
     - 移除底部浮动按钮区域
     - 将"点一支"和"查看香方"按钮整合到展开的卡片内
@@ -150,14 +247,11 @@ App.tsx
     - 统一使用香型主题色调
     - 内容顺序：先"制香师说"，后"安心说明"
     - 移除重复的香方详情列表
-*   [Feature] **沉浸页呼吸感渐变背景**:
-    - 听荷: 莲粉色系渐变 (`rgba(252, 231, 243) → rgba(249, 168, 212)`)
-    - 晚巷: 桂金色系渐变 (`rgba(254, 243, 199) → rgba(252, 211, 77)`)
-    - 小院: 苔绿色系渐变 (`rgba(187, 247, 208) → rgba(74, 222, 128)`)
-*   [Feature] **背景呼吸动画**:
-    - 动画名称: `breathe`
-    - 周期: 8秒 (`ease-in-out infinite`)
-    - 效果: 透明度 0.5 → 1.0，缩放 1.0 → 1.03
+*   [Feature] **沉浸页静态渐变背景**:
+    - 三层径向渐变叠加，营造深度感
+    - 听荷: 莲粉渐变 (`primary: rgba(196,144,138,0.7)`, `secondary: rgba(232,204,200,0.6)`)
+    - 晚巷: 桂金渐变 (`primary: rgba(196,160,96,0.7)`, `secondary: rgba(232,220,192,0.6)`)
+    - 小院: 苔绿渐变 (`primary: rgba(154,171,154,0.65)`, `secondary: rgba(212,221,212,0.6)`)
 *   [Feature] **文案呼吸动画**:
     - 动画名称: `textBreathe`
     - 周期: 4秒 (`ease-in-out infinite`)
@@ -170,13 +264,13 @@ App.tsx
     - 实现方式: 160 步 × 50ms/步
 *   [Test] **测试覆盖**:
     - 新增 Dashboard.test.tsx
-    - 90 个测试用例全部通过
     - TDD 开发流程
 *   [Refactor] **组件更新**:
     - `App.tsx`: 添加 `scentId` 传递给 `DynamicBackground`，更新音频淡入逻辑
-    - `Dashboard.tsx`: 展开卡片 UI 重构，按钮样式更新
-    - `DynamicBackground.tsx`: 新增 `scentId` prop，香型特定渐变色
-    - `index.html`: 添加 `breathe` 和 `textBreathe` 动画
+    - `Dashboard.tsx`: 展开卡片 UI 重构，按钮样式更新，大地色调适配
+    - `DynamicBackground.tsx`: 新增 `scentId` prop，香型特定渐变色，移除动画
+    - `constants.ts`: 更新 FRAGRANCE_LIST、DASHBOARD_DATA 配色
+    - `index.html`: 添加大地色调变量，更新 `textBreathe` 动画
 
 ### v2.2.0 (Brand Aligned)
 *   [Brand] **品牌命名规范**: 采用"心理坐标"命名法
@@ -203,7 +297,7 @@ App.tsx
 
 ---
 
-## 8. 待办事项
+## 9. 待办事项
 
 ### 优先级高
 - [ ] **代码重构**: 将 App.tsx 拆分为自定义 Hooks 和子组件
@@ -215,6 +309,8 @@ App.tsx
 - [ ] 优化不同屏幕比例的背景图适配
 - [ ] 完善品牌生活方式页面
 - [ ] 添加本地音频文件的 CDN 支持
+- [ ] 添加 `mood_before` 字段支持 Mood Shift 指标
+- [ ] 添加购买数据表支持复购率追踪
 
 ### 优先级低
 - [ ] PWA 支持（离线使用）
@@ -222,7 +318,7 @@ App.tsx
 
 ---
 
-## 9. 开发指南
+## 10. 开发指南
 
 ### 本地开发
 ```bash
@@ -234,12 +330,29 @@ npm run dev
 创建 `.env.local` 文件：
 ```
 GEMINI_API_KEY=your_api_key_here
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### 构建生产版本
 ```bash
 npm run build
 npm run preview
+```
+
+### 验证数据埋点
+```sql
+-- 查看最近的 fragrance_confirm 事件
+SELECT
+  event_type,
+  event_data->>'entryType' as entry_type,
+  event_data->>'fragranceId' as fragrance_id,
+  event_data->>'wasSwitched' as was_switched,
+  created_at
+FROM analytics_events
+WHERE event_type = 'fragrance_confirm'
+ORDER BY created_at DESC
+LIMIT 10;
 ```
 
 ---

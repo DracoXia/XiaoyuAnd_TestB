@@ -1,0 +1,910 @@
+<testsuites id="" name="" tests="56" failures="56" skipped="0" errors="0" time="31.224799000000115">
+<testsuite name="analytics.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="13" failures="13" skipped="0" time="0.034" errors="0">
+<testcase name="Analytics - 数据埋点验证 › should track session start on dashboard click" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:19:3 should track session start on dashboard click" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:19:3 › Analytics - 数据埋点验证 › should track session start on dashboard click 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track complete user journey with all events" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:43:3 should track complete user journey with all events" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:43:3 › Analytics - 数据埋点验证 › should track complete user journey with all events 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track scent fragrance switch" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:106:3 should track scent fragrance switch" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:106:3 › Analytics - 数据埋点验证 › should track scent fragrance switch ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track ambiance mode changes" classname="analytics.spec.ts" time="0.003">
+<failure message="analytics.spec.ts:130:3 should track ambiance mode changes" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:130:3 › Analytics - 数据埋点验证 › should track ambiance mode changes ───
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track mood selection in treehole" classname="analytics.spec.ts" time="0.004">
+<failure message="analytics.spec.ts:159:3 should track mood selection in treehole" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:159:3 › Analytics - 数据埋点验证 › should track mood selection in treehole 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track context selection in treehole" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:187:3 should track context selection in treehole" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:187:3 › Analytics - 数据埋点验证 › should track context selection in treehole 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track healing text submission" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:211:3 should track healing text submission" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:211:3 › Analytics - 数据埋点验证 › should track healing text submission ─
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track hug action on peer echo" classname="analytics.spec.ts" time="0.005">
+<failure message="analytics.spec.ts:240:3 should track hug action on peer echo" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:240:3 › Analytics - 数据埋点验证 › should track hug action on peer echo ─
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track audio toggle interaction" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:275:3 should track audio toggle interaction" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:275:3 › Analytics - 数据埋点验证 › should track audio toggle interaction 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should track session completion" classname="analytics.spec.ts" time="0.003">
+<failure message="analytics.spec.ts:300:3 should track session completion" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:300:3 › Analytics - 数据埋点验证 › should track session completion ──────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should verify all scent cards are trackable" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:325:3 should verify all scent cards are trackable" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:325:3 › Analytics - 数据埋点验证 › should verify all scent cards are trackable 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should verify mood options are trackable" classname="analytics.spec.ts" time="0.003">
+<failure message="analytics.spec.ts:338:3 should verify mood options are trackable" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:338:3 › Analytics - 数据埋点验证 › should verify mood options are trackable 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Analytics - 数据埋点验证 › should verify context options are trackable" classname="analytics.spec.ts" time="0.002">
+<failure message="analytics.spec.ts:356:3 should verify context options are trackable" type="FAILURE">
+<![CDATA[  [chromium] › analytics.spec.ts:356:3 › Analytics - 数据埋点验证 › should verify context options are trackable 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="dashboard.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="9" failures="9" skipped="0" time="0.022" errors="0">
+<testcase name="Dashboard - 香型选择页面 › should display greeting and title" classname="dashboard.spec.ts" time="0.005">
+<failure message="dashboard.spec.ts:16:3 should display greeting and title" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:16:3 › Dashboard - 香型选择页面 › should display greeting and title ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should display all available scent cards" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:24:3 should display all available scent cards" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:24:3 › Dashboard - 香型选择页面 › should display all available scent cards 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should expand scent card on click" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:28:3 should expand scent card on click" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:28:3 › Dashboard - 香型选择页面 › should expand scent card on click ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should start session when clicking ignite button" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:40:3 should start session when clicking ignite button" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:40:3 › Dashboard - 香型选择页面 › should start session when clicking ignite button 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should display scent card details correctly" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:48:3 should display scent card details correctly" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:48:3 › Dashboard - 香型选择页面 › should display scent card details correctly 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should open and close mood map modal" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:54:3 should open and close mood map modal" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:54:3 › Dashboard - 香型选择页面 › should open and close mood map modal ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should show calendar and recent tabs in mood map" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:66:3 should show calendar and recent tabs in mood map" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:66:3 › Dashboard - 香型选择页面 › should show calendar and recent tabs in mood map 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should not allow clicking locked scent cards" classname="dashboard.spec.ts" time="0.003">
+<failure message="dashboard.spec.ts:77:3 should not allow clicking locked scent cards" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:77:3 › Dashboard - 香型选择页面 › should not allow clicking locked scent cards 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard - 香型选择页面 › should switch between scents by clicking different cards" classname="dashboard.spec.ts" time="0.002">
+<failure message="dashboard.spec.ts:86:3 should switch between scents by clicking different cards" type="FAILURE">
+<![CDATA[  [chromium] › dashboard.spec.ts:86:3 › Dashboard - 香型选择页面 › should switch between scents by clicking different cards 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="immersion.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="10" failures="10" skipped="0" time="0.022" errors="0">
+<testcase name="Immersion - 沉浸页面 › should display poem for selected scent" classname="immersion.spec.ts" time="0.003">
+<failure message="immersion.spec.ts:21:3 should display poem for selected scent" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:21:3 › Immersion - 沉浸页面 › should display poem for selected scent ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should display ambiance tuner at bottom" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:29:3 should display ambiance tuner at bottom" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:29:3 › Immersion - 沉浸页面 › should display ambiance tuner at bottom ─
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should show all three ambiance modes" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:33:3 should show all three ambiance modes" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:33:3 › Immersion - 沉浸页面 › should show all three ambiance modes ────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should switch ambiance modes" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:39:3 should switch ambiance modes" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:39:3 › Immersion - 沉浸页面 › should switch ambiance modes ────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should have audio controls available" classname="immersion.spec.ts" time="0.003">
+<failure message="immersion.spec.ts:53:3 should have audio controls available" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:53:3 › Immersion - 沉浸页面 › should have audio controls available ────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should toggle audio mute state" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:58:3 should toggle audio mute state" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:58:3 › Immersion - 沉浸页面 › should toggle audio mute state ──────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should show different poems for different scents" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:67:3 should show different poems for different scents" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:67:3 › Immersion - 沉浸页面 › should show different poems for different scents 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should navigate to mood entry from left top button" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:82:3 should navigate to mood entry from left top button" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:82:3 › Immersion - 沉浸页面 › should navigate to mood entry from left top button 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should navigate to dashboard from menu button" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:90:3 should navigate to dashboard from menu button" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:90:3 › Immersion - 沉浸页面 › should navigate to dashboard from menu button 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Immersion - 沉浸页面 › should display resident count information" classname="immersion.spec.ts" time="0.002">
+<failure message="immersion.spec.ts:98:3 should display resident count information" type="FAILURE">
+<![CDATA[  [chromium] › immersion.spec.ts:98:3 › Immersion - 沉浸页面 › should display resident count information 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="smoke.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="6" failures="6" skipped="0" time="0.016" errors="0">
+<testcase name="Smoke Tests - 快速验证 › should load the application" classname="smoke.spec.ts" time="0.002">
+<failure message="smoke.spec.ts:8:3 should load the application" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:8:3 › Smoke Tests - 快速验证 › should load the application ────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Smoke Tests - 快速验证 › should display dashboard on load" classname="smoke.spec.ts" time="0.002">
+<failure message="smoke.spec.ts:13:3 should display dashboard on load" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:13:3 › Smoke Tests - 快速验证 › should display dashboard on load ──────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Smoke Tests - 快速验证 › should have all scent cards visible" classname="smoke.spec.ts" time="0.006">
+<failure message="smoke.spec.ts:23:3 should have all scent cards visible" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:23:3 › Smoke Tests - 快速验证 › should have all scent cards visible ───────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Smoke Tests - 快速验证 › should be able to expand a scent card" classname="smoke.spec.ts" time="0.002">
+<failure message="smoke.spec.ts:33:3 should be able to expand a scent card" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:33:3 › Smoke Tests - 快速验证 › should be able to expand a scent card ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Smoke Tests - 快速验证 › should navigate to immersion" classname="smoke.spec.ts" time="0.002">
+<failure message="smoke.spec.ts:43:3 should navigate to immersion" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:43:3 › Smoke Tests - 快速验证 › should navigate to immersion ──────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Smoke Tests - 快速验证 › should have ambiance controls visible" classname="smoke.spec.ts" time="0.002">
+<failure message="smoke.spec.ts:56:3 should have ambiance controls visible" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:56:3 › Smoke Tests - 快速验证 › should have ambiance controls visible ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="treehole.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="11" failures="11" skipped="0" time="0.026" errors="0">
+<testcase name="Treehole - 树洞页面 › should display mood selection options" classname="treehole.spec.ts" time="0.004">
+<failure message="treehole.spec.ts:26:3 should display mood selection options" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:26:3 › Treehole - 树洞页面 › should display mood selection options ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should navigate to context selection after mood selection" classname="treehole.spec.ts" time="0.004">
+<failure message="treehole.spec.ts:38:3 should navigate to context selection after mood selection" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:38:3 › Treehole - 树洞页面 › should navigate to context selection after mood selection 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should display all context options" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:46:3 should display all context options" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:46:3 › Treehole - 树洞页面 › should display all context options ────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should generate AI reply after context selection" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:60:3 should generate AI reply after context selection" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:60:3 › Treehole - 树洞页面 › should generate AI reply after context selection 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should allow entering healing text" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:69:3 should allow entering healing text" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:69:3 › Treehole - 树洞页面 › should allow entering healing text ────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should submit healing and show peer echo" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:81:3 should submit healing and show peer echo" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:81:3 › Treehole - 树洞页面 › should submit healing and show peer echo ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should allow giving hug to peer echo" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:94:3 should allow giving hug to peer echo" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:94:3 › Treehole - 树洞页面 › should allow giving hug to peer echo ──────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should allow skipping healing submission" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:111:3 should allow skipping healing submission" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:111:3 › Treehole - 树洞页面 › should allow skipping healing submission ─
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should display back button on mood selection step" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:124:3 should display back button on mood selection step" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:124:3 › Treehole - 树洞页面 › should display back button on mood selection step 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should go back to immersion page" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:129:3 should go back to immersion page" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:129:3 › Treehole - 树洞页面 › should go back to immersion page ─────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Treehole - 树洞页面 › should complete full treehole flow and return to dashboard" classname="treehole.spec.ts" time="0.002">
+<failure message="treehole.spec.ts:137:3 should complete full treehole flow and return to dashboard" type="FAILURE">
+<![CDATA[  [chromium] › treehole.spec.ts:137:3 › Treehole - 树洞页面 › should complete full treehole flow and return to dashboard 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="user-journey.spec.ts" timestamp="2026-02-14T12:29:08.698Z" hostname="chromium" tests="7" failures="7" skipped="0" time="0.014" errors="0">
+<testcase name="User Journey - 完整用户流程 › complete journey: select scent -&gt; immersion -&gt; mood entry -&gt; treehole -&gt; dashboard" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:20:3 complete journey: select scent -&gt; immersion -&gt; mood entry -&gt; treehole -&gt; dashboard" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:20:3 › User Journey - 完整用户流程 › complete journey: select scent -> immersion -> mood entry -> treehole -> dashboard 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › complete journey with all scents: verify each scent shows unique poem" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:103:3 complete journey with all scents: verify each scent shows unique poem" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:103:3 › User Journey - 完整用户流程 › complete journey with all scents: verify each scent shows unique poem 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › complete journey: test all ambiance modes" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:138:3 complete journey: test all ambiance modes" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:138:3 › User Journey - 完整用户流程 › complete journey: test all ambiance modes 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › complete journey: test multiple mood-context combinations" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:168:3 complete journey: test multiple mood-context combinations" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:168:3 › User Journey - 完整用户流程 › complete journey: test multiple mood-context combinations 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › should handle edge case: no healing text submission" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:218:3 should handle edge case: no healing text submission" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:218:3 › User Journey - 完整用户流程 › should handle edge case: no healing text submission 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › should preserve state when navigating back from treehole to immersion" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:244:3 should preserve state when navigating back from treehole to immersion" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:244:3 › User Journey - 完整用户流程 › should preserve state when navigating back from treehole to immersion 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="User Journey - 完整用户流程 › should handle rapid scent switching" classname="user-journey.spec.ts" time="0.002">
+<failure message="user-journey.spec.ts:275:3 should handle rapid scent switching" type="FAILURE">
+<![CDATA[  [chromium] › user-journey.spec.ts:275:3 › User Journey - 完整用户流程 › should handle rapid scent switching 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\24784\AppData\Local\ms-playwright\chromium_headless_shell-1208\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+</testsuites>
