@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.4.2 (Audio Mode Tracking)
+**当前版本**: v2.6.0 (NFC Gift Feature)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -109,6 +109,39 @@ App.tsx
 ├── Immersion (内联渲染)
 ├── Treehole (内联渲染)
 └── Dashboard
+    └── AuthModal (登录 UI 展示)
+```
+
+### 5.2 目录结构
+```
+lib/
+├── analytics/           # 数据埋点系统
+│   ├── types.ts         # 事件类型定义
+│   ├── analyticsService.ts
+│   ├── entryDetection.ts
+│   ├── userService.ts
+│   └── supabaseClient.ts
+├── user/                # 用户设置服务 (v2.5.1 新增)
+│   └── userSettingsService.ts
+├── gift/                # NFC 赠送功能 (v2.6.0 新增)
+│   ├── types.ts         # 赠送类型定义
+│   ├── api.ts           # 赠送 API 封装
+│   └── index.ts         # 模块导出
+├── nfc/                 # NFC 扫描工具 (v2.6.0 新增)
+│   ├── reader.ts        # Web NFC API 封装
+│   └── index.ts         # 模块导出
+└── music/               # 歌单导入服务
+    ├── types.ts
+    └── parser.ts
+
+components/
+├── auth/                # 认证组件 (v2.5.1 新增)
+│   └── AuthModal.tsx
+├── GiftSetupModal.tsx   # 赠送设置弹窗 (v2.6.0 新增)
+├── GiftReceivedModal.tsx # 接收礼物弹窗 (v2.6.0 新增)
+├── PlaylistModal.tsx
+├── Dashboard.tsx
+└── ...
 ```
 
 ### 5.2 核心状态
@@ -141,11 +174,12 @@ lib/analytics/
 
 | 表名 | 用途 | 关键字段 |
 |------|------|---------|
-| `users` | 匿名用户 | `device_id`, `is_anonymous` |
+| `users` | 匿名用户 | `device_id`, `is_anonymous`, `nfc_id` (v2.5.1+), `preferences` JSONB (v2.5.1+) |
 | `sessions` | 疗愈会话 | `entry_type`, `fragrance_id`, `duration_seconds`, `audio_mode` |
 | `mood_records` | 心情记录 | `mood_after`, `context`, `self_evaluation` |
 | `social_interactions` | 社交互动 | `interaction_type` (give_hug, etc.) |
 | `analytics_events` | 事件埋点 | `event_type`, `event_data` (JSONB) |
+| `gifts` | NFC 赠送 (v2.6.0+) | `nfc_id`, `giver_name`, `message`, `playlist_url`, `playlist_id`, `playlist_name`, `status`, `redeemed_at` |
 
 #### sessions.audio_mode 字段
 
@@ -167,6 +201,13 @@ lib/analytics/
 | `mood_select` | 心情选择 | `mood` |
 | `context_select` | 场景选择 | `context`, `mood` |
 | `give_hug` | 给予拥抱 | `targetEchoId` |
+| `auth_modal_opened` | 打开登录弹窗 | - |
+| `auth_phone_entered` | 输入手机号 | `phone` (脱敏) |
+| `auth_dev_notice_shown` | 显示开发中提示 | `phone` (脱敏) |
+| `auth_skip_clicked` | 点击稍后再说 | - |
+| `nfc_user_created` | NFC 新用户创建 | `nfcId` |
+| `nfc_user_restored` | NFC 老用户恢复 | `nfcId` |
+| `preference_updated` | 偏好设置更新 | `key`, `value` |
 
 ### 6.4 NFC 入口检测
 
@@ -213,7 +254,49 @@ const result = detectEntryType();
 // { type: 'nfc', isFromNFC: true }
 ```
 
-### 6.5 验证指标对照
+### 6.5 NFC 用户设置 (v2.5.1 新增)
+
+**架构设计**:
+```
+NFC 芯片 (nfc_id: "nfc_abc123")
+        │
+        ▼
+Supabase users 表
+  ├── device_id (当前设备)
+  ├── nfc_id (关联的 NFC 芯片)
+  ├── preferences JSONB (用户偏好设置)
+  │     ├── favorite_fragrance: "wanxiang"
+  │     ├── audio_mode: "natural"
+  │     ├── playlist: {...}
+  │     └── notifications: true
+  └── created_at
+```
+
+**核心服务** (`lib/user/userSettingsService.ts`):
+| 方法 | 功能 |
+|------|------|
+| `getOrCreateUserByNFC(nfcId)` | 通过 NFC ID 获取或创建用户 |
+| `getPreferences(userId)` | 获取用户偏好设置 |
+| `updatePreference(userId, key, value)` | 更新单个偏好设置 |
+| `linkNFCtoUser(userId, nfcId)` | 将 NFC 绑定到现有用户 |
+
+**使用示例**:
+```typescript
+import { userSettingsService } from './lib/user/userSettingsService';
+
+// NFC 扫描后获取/创建用户
+const result = await userSettingsService.getOrCreateUserByNFC('nfc_abc123');
+if (result.isNew) {
+  // 首次扫描，创建新用户
+  console.log('欢迎新岛民！');
+} else {
+  // 再次扫描，恢复设置
+  const prefs = await userSettingsService.getPreferences(result.user.id);
+  console.log('欢迎回来！您喜欢的香型是:', prefs.favorite_fragrance);
+}
+```
+
+### 6.6 验证指标对照
 
 | PRD 指标 | 数据库支持 | 查询方式 |
 |---------|-----------|---------|
@@ -249,7 +332,92 @@ GROUP BY audio_mode;
 
 ## 8. 版本历史
 
-### v2.4.2 (Audio Mode Tracking) - Current
+### v2.6.0 (NFC Gift Feature) - Current
+*   [Feature] **NFC 赠送功能**:
+    - Dashboard 头部新增礼物图标按钮（替代原 Apple Music 入口）
+    - 点击触发 GiftSetupModal 赠送设置弹窗
+    - 支持设置：礼物名称、赠言、网易云歌单链接
+    - 扫描 NFC 完成绑定，将礼物信息存储到 Supabase
+    - 同一 NFC 芯片可被他人扫描，自动弹出 GiftReceivedModal 接收礼物
+*   [Feature] **品牌化文案**:
+    - 弹窗标题：「把一首歌，送给重要的人」
+    - 表单标签：「这份礼物的名字」「想对TA说的话」「一首陪伴的歌」
+    - 按钮：「保存到产品」
+    - 符合品牌命名规范中的"心理坐标"命名法
+*   [Tech] **NFC 扫描封装**:
+    - `lib/nfc/reader.ts`: Web NFC API 封装
+    - 支持开发环境模拟扫描 (`mockNFCScan`)
+    - 自动检测设备 NFC 支持情况
+*   [Database] **Supabase 迁移**:
+    - `supabase/migrations/002_gifts.sql`: 新增 gifts 表
+    - 字段：`nfc_id`, `giver_name`, `message`, `playlist_url`, `playlist_id`, `playlist_name`, `status`, `created_at`, `redeemed_at`
+    - 状态：`pending`（待领取）/ `redeemed`（已领取）
+*   [Files] **新增文件**:
+    - `lib/gift/types.ts`: 赠送功能类型定义
+    - `lib/gift/api.ts`: 赠送功能 API 封装
+    - `lib/gift/index.ts`: 模块导出
+    - `lib/nfc/reader.ts`: NFC 扫描工具
+    - `lib/nfc/index.ts`: 模块导出
+    - `components/GiftSetupModal.tsx`: 赠送设置弹窗
+    - `components/GiftReceivedModal.tsx`: 接收礼物弹窗
+    - `supabase/migrations/002_gifts.sql`: 数据库迁移脚本
+*   [Files] **修改文件**:
+    - `lib/music/types.ts`: `MusicPlatform` 从 `apple` 改为 `gift`
+    - `lib/music/parser.ts`: 新增 `gift` 平台解析逻辑
+    - `components/Dashboard.tsx`: 新增礼物按钮
+    - `components/PlaylistModal.tsx`: 替换 Apple Music 为「朋友的礼物」
+*   [Docs] **PRD 更新**: 新增 R013 (NFC 赠送功能)
+
+### v2.5.1 (Login UI & NFC User Settings)
+*   [Feature] **登录 UI 展示** (V1 MVP):
+    - Dashboard 头部新增用户图标按钮
+    - 点击触发 AuthModal 登录弹窗
+    - 手机号格式验证 (中国大陆 11 位)
+    - 点击"获取验证码"显示"功能开发中"提示
+    - 支持"稍后再说"跳过登录
+    - UI 风格与现有 App 保持统一 (圆角 2rem, dopamine-orange 主题)
+*   [Feature] **NFC 用户设置**:
+    - 数据库迁移: `users` 表新增 `nfc_id`, `preferences` 字段
+    - 支持 NFC 芯片关联用户身份
+    - JSONB 存储用户偏好设置
+    - 同一 NFC 在不同设备可恢复设置
+*   [Analytics] **埋点系统增强**:
+    - 新增登录相关事件: `auth_modal_opened`, `auth_phone_entered`, `auth_dev_notice_shown`, `auth_skip_clicked`
+    - 新增 NFC 用户事件: `nfc_user_created`, `nfc_user_restored`, `preference_updated`
+*   [Files] **新增文件**:
+    - `supabase/migrations/003_nfc_user_settings.sql`: 数据库迁移脚本
+    - `lib/user/userSettingsService.ts`: NFC 用户设置服务
+    - `lib/user/__tests__/userSettingsService.test.ts`: 单元测试 (3 tests)
+    - `components/auth/AuthModal.tsx`: 登录 UI 组件
+    - `components/auth/__tests__/AuthModal.test.tsx`: 组件测试 (11 tests)
+*   [Docs] **PRD 更新**: 新增 R011 (登录 UI 展示), R012 (NFC 用户设置)
+
+### v2.5.0 (Custom Playlist Integration)
+*   [Feature] **用户歌单导入**:
+    - 沉浸页 Ambiance Tuner 区域新增 "+" 按钮
+    - 支持网易云音乐、Apple Music 歌单链接导入
+    - 小屿和音乐库 (Coming Soon) 预留入口
+*   [Feature] **"我的" 播放模式**:
+    - 导入歌单后，Ambiance Tuner 显示 "我的" 模式按钮
+    - 选择 "我的" 模式时，播放用户自定义歌单
+    - 官方音频自动静音，避免冲突
+*   [UI] **引导流程**:
+    - 四步引导：欢迎页 → 平台选择 → 链接输入 → 成功确认
+    - 品牌化文案：与疗愈调性一致
+    - localStorage 持久化存储用户歌单
+*   [Tech] **嵌入式播放器方案**:
+    - 网易云：`//music.163.com/outchain/player?type=0&id={id}&auto=1`
+    - Apple Music：`https://embed.music.apple.com/playlist/pl.{id}`
+    - 隐藏 iframe 实现无侵入播放
+*   [Files] **新增文件**:
+    - `lib/music/types.ts`: 音乐平台类型定义
+    - `lib/music/parser.ts`: 链接解析与播放器 URL 生成
+    - `components/PlaylistModal.tsx`: 歌单导入弹窗组件
+*   [Tests] **E2E 测试覆盖**:
+    - `e2e/playlist.spec.ts`: 14 个测试用例
+    - 覆盖完整导入流程、错误处理、持久化验证
+
+### v2.4.2 (Audio Mode Tracking)
 *   [Feature] **音频模式追踪**:
     - 数据库迁移: `sessions` 表新增 `audio_mode` 字段
     - 支持四种模式: `silent`, `natural`, `pink`, `brown`

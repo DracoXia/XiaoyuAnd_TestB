@@ -59,7 +59,16 @@ export type AnalyticsEventType =
   // 社交互动
   | 'medicine_submit'
   | 'give_hug'
-  | 'receive_echo';
+  | 'receive_echo'
+  // 登录相关（V1 新增）
+  | 'auth_modal_opened'
+  | 'auth_phone_entered'
+  | 'auth_dev_notice_shown'
+  | 'auth_skip_clicked'
+  // NFC 用户设置（V1 新增）
+  | 'nfc_user_created'
+  | 'nfc_user_restored'
+  | 'preference_updated';
 
 // === 事件数据结构 ===
 
@@ -149,6 +158,44 @@ export interface ReceiveEchoEventData extends BaseEventData {
   matchedContext: string;
 }
 
+// === 登录相关事件（V1 新增）===
+
+export interface AuthModalOpenedEventData extends BaseEventData {
+  eventType: 'auth_modal_opened';
+}
+
+export interface AuthPhoneEnteredEventData extends BaseEventData {
+  eventType: 'auth_phone_entered';
+  phone: string; // 脱敏后的手机号
+}
+
+export interface AuthDevNoticeShownEventData extends BaseEventData {
+  eventType: 'auth_dev_notice_shown';
+  phone: string; // 脱敏后的手机号
+}
+
+export interface AuthSkipClickedEventData extends BaseEventData {
+  eventType: 'auth_skip_clicked';
+}
+
+// === NFC 用户设置事件（V1 新增）===
+
+export interface NFCUserCreatedEventData extends BaseEventData {
+  eventType: 'nfc_user_created';
+  nfcId: string;
+}
+
+export interface NFCUserRestoredEventData extends BaseEventData {
+  eventType: 'nfc_user_restored';
+  nfcId: string;
+}
+
+export interface PreferenceUpdatedEventData extends BaseEventData {
+  eventType: 'preference_updated';
+  key: string;
+  value: unknown;
+}
+
 // 联合类型
 export type AnalyticsEventData =
   | NFCTriggerEventData
@@ -164,7 +211,16 @@ export type AnalyticsEventData =
   | MoodSelfEvalEventData
   | MedicineSubmitEventData
   | GiveHugEventData
-  | ReceiveEchoEventData;
+  | ReceiveEchoEventData
+  // 登录相关（V1 新增）
+  | AuthModalOpenedEventData
+  | AuthPhoneEnteredEventData
+  | AuthDevNoticeShownEventData
+  | AuthSkipClickedEventData
+  // NFC 用户设置（V1 新增）
+  | NFCUserCreatedEventData
+  | NFCUserRestoredEventData
+  | PreferenceUpdatedEventData;
 
 // === 心情记录 ===
 

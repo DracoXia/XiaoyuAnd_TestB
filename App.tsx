@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon } from 'lucide-react';
+import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon, Music } from 'lucide-react';
 import { AppPhase } from './types';
 import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES_BY_MOOD, PINK_NOISE_URL, BROWN_NOISE_URL } from './constants';
 import DynamicBackground from './components/DynamicBackground';
 import AudioPlayer from './components/AudioPlayer';
 import Ritual from './components/Ritual';
 import Dashboard from './components/Dashboard';
+import PlaylistModal from './components/PlaylistModal';
 import { GeminiService, TreeholeResult } from './components/GeminiService';
 import { useAnalytics } from './hooks/useAnalytics';
 import { detectEntryType, clearNFCParams } from './lib/analytics/entryDetection';
 import type { EntryType, AudioMode } from './lib/analytics/types';
+import type { PlaylistInfo } from './lib/music/types';
+import { getEmbeddedPlayerUrl } from './lib/music/parser';
 
 // Ambiance ID to AudioMode mapping
 const AMBIANCE_TO_AUDIO_MODE: Record<string, AudioMode> = {
@@ -89,6 +92,21 @@ const App: React.FC = () => {
 
     // Social Proof State
     const [residentCount, setResidentCount] = useState(0);
+
+    // --- Playlist Modal State ---
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [userPlaylist, setUserPlaylist] = useState<PlaylistInfo | null>(() => {
+        // 尝试从 localStorage 恢复用户歌单
+        try {
+            const saved = localStorage.getItem('xiaoyu_user_playlist');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch {
+            // ignore
+        }
+        return null;
+    });
 
     const timerRef = useRef<number | null>(null);
 
@@ -214,8 +232,10 @@ const App: React.FC = () => {
             wasSwitched: wasSwitched
         });
 
-        // Analytics: Start session
-        startSession(activeFragranceId, entryType);
+        // Analytics: Start session (non-blocking)
+        startSession(activeFragranceId, entryType).catch(err => {
+          console.warn('Analytics: Failed to start session', err);
+        });
         sessionStartRef.current = Date.now();
 
         // Analytics: Track ritual completion
@@ -424,8 +444,10 @@ const App: React.FC = () => {
             wasSwitched: false // Dashboard 直接选择，无切换
         });
 
-        // Analytics: Start new session with detected entry type
-        startSession(id, entryType);
+        // Analytics: Start new session with detected entry type (non-blocking)
+        startSession(id, entryType).catch(err => {
+          console.warn('Analytics: Failed to start session', err);
+        });
         sessionStartRef.current = Date.now(); // Track start time for duration
 
         // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)
@@ -496,6 +518,29 @@ const App: React.FC = () => {
         // URL update is now handled by useEffect on activeAmbianceId
     };
 
+    // --- Handle Playlist Modal ---
+    const handleOpenPlaylistModal = () => {
+        setShowPlaylistModal(true);
+    };
+
+    const handlePlaylistSet = (playlist: PlaylistInfo | null) => {
+        setUserPlaylist(playlist);
+        // 保存到 localStorage
+        try {
+            if (playlist) {
+                localStorage.setItem('xiaoyu_user_playlist', JSON.stringify(playlist));
+            } else {
+                localStorage.removeItem('xiaoyu_user_playlist');
+            }
+        } catch {
+            // ignore
+        }
+        // 如果设置了歌单，自动切换到"我的"模式
+        if (playlist) {
+            setActiveAmbianceId('mine');
+        }
+    };
+
     const handleFinishJourney = () => {
         // If no interaction (no likes/lights), skip the summary modal
         if (visitedCardIds.size === 0) {
@@ -558,7 +603,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-            {/* Ambiance Tuner (Refactored: 3 Modes + Independent Mute) */}
+            {/* Ambiance Tuner (4 Modes + Add Playlist + Mute) */}
             <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
                 <div
                     className="bg-[#E5E5E5]/80 backdrop-blur-xl p-1.5 rounded-full shadow-inner flex items-center gap-1 pointer-events-auto"
@@ -567,11 +612,13 @@ const App: React.FC = () => {
                     {/* Mode Buttons */}
                     {AMBIANCE_MODES.map((mode) => {
                         const isActive = activeAmbianceId === mode.id;
+                        const isMineMode = mode.id === 'mine';
+                        const hasPlaylist = userPlaylist !== null;
 
-                        // Icon mapping
-                        let Icon = Leaf;
-                        if (mode.icon === 'moon') Icon = Moon;
-                        if (mode.icon === 'wind') Icon = Wind; // Placeholder map, adjust as needed
+                        // 对于"我的"模式，如果没有设置歌单则不显示或显示为禁用
+                        if (isMineMode && !hasPlaylist) {
+                            return null; // 没有歌单时不显示"我的"按钮
+                        }
 
                         return (
                             <button
@@ -590,14 +637,31 @@ const App: React.FC = () => {
                                         : 'text-ink-gray/40 hover:bg-white/40 hover:text-ink-gray/60 px-3'}
                                 `}
                             >
-                                {/* We can check id for specific icons if mapped, or use a lookup */}
                                 {mode.id === 'original' && <Leaf className="w-4 h-4" strokeWidth={2} />}
                                 {mode.id === 'sleep' && <Moon className="w-4 h-4" strokeWidth={2} />}
                                 {mode.id === 'meditate' && <Wind className="w-4 h-4" strokeWidth={2} />}
+                                {mode.id === 'mine' && <Music className="w-4 h-4" strokeWidth={2} />}
                                 {isActive && <span className="text-xs font-bold tracking-widest font-serif">{mode.label}</span>}
                             </button>
                         );
                     })}
+
+                    {/* Add Playlist Button (+) */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPlaylistModal();
+                        }}
+                        className={`
+                            w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                            ${userPlaylist
+                                ? 'bg-dopamine-orange/20 text-dopamine-orange' // 已设置歌单
+                                : 'text-ink-gray/40 hover:bg-white/40 hover:text-ink-gray/60'}
+                        `}
+                        title={userPlaylist ? "管理我的歌单" : "添加我的音乐"}
+                    >
+                        <Plus className="w-5 h-5" strokeWidth={2} />
+                    </button>
 
                     {/* Divider */}
                     <div className="w-px h-6 bg-gray-300 mx-1 opacity-50"></div>
@@ -804,15 +868,16 @@ const App: React.FC = () => {
                 key="main-audio"
                 url={currentAudioUrl}
                 // Allow playing in RITUAL phase if explicitly triggered (for preloading)
-                isPlaying={isPlaying && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE || phase === AppPhase.LANDING)}
+                // 当"我的"模式激活时，静音官方音频（iframe 播放用户歌单）
+                isPlaying={isPlaying && activeAmbianceId !== 'mine' && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE || phase === AppPhase.LANDING)}
                 volume={layer2AudioUrl ? volume * 0.65 : volume} // Reduce volume by 35% if Layer 2 is active
                 onLoadingStatusChange={setIsAudioLoading}
                 onError={() => setAudioError(true)}
             />
-            {/* LAYER 2: Functional Noise Overlay */}
+            {/* LAYER 2: Functional Noise Overlay - "我的"模式下也静音 */}
             <AudioPlayer
                 url={layer2AudioUrl}
-                isPlaying={isPlaying && layer2AudioUrl !== "" && (phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)}
+                isPlaying={isPlaying && activeAmbianceId !== 'mine' && layer2AudioUrl !== "" && (phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)}
                 volume={volume * 0.8} // Slightly lower volume for overlay to blend well
             />
 
@@ -861,6 +926,36 @@ const App: React.FC = () => {
 
             {phase === AppPhase.TREEHOLE && renderTreehole()}
             {phase === AppPhase.DASHBOARD && <Dashboard onScenarioClick={handleDashboardScenarioClick} />}
+
+            {/* Playlist Modal */}
+            <PlaylistModal
+                isOpen={showPlaylistModal}
+                onClose={() => setShowPlaylistModal(false)}
+                onPlaylistSet={handlePlaylistSet}
+                existingPlaylist={userPlaylist}
+            />
+
+            {/* 隐藏的内嵌音乐播放器 - 用于播放用户导入的歌单 */}
+            {/* 当静音时移除 iframe，取消静音时重新加载（自动播放） */}
+            {userPlaylist &&
+             activeAmbianceId === 'mine' &&
+             phase === AppPhase.IMMERSION &&
+             isPlaying && (
+                <iframe
+                    src={getEmbeddedPlayerUrl(userPlaylist.platform, userPlaylist.id)}
+                    style={{
+                        position: 'absolute',
+                        width: '0',
+                        height: '0',
+                        border: 'none',
+                        opacity: 0,
+                        pointerEvents: 'none',
+                    }}
+                    allow="autoplay *; encrypted-media *; fullscreen *"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    title="User Playlist Player"
+                />
+            )}
         </div>
     );
 };

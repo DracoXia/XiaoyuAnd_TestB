@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, Check, ChevronUp, Info, ScanLine, Flame } from 'lucide-react';
+import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, Check, ChevronUp, Info, ScanLine, Flame, Gift, User } from 'lucide-react';
 import { MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT, DASHBOARD_DATA } from '../constants'; // Keep DASHBOARD_DATA import to avoid breaking if referenced elsewhere, but won't use it.
+import GiftSetupModal from './GiftSetupModal';
+import AuthModal from './auth/AuthModal';
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
@@ -77,6 +79,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
     const [selectedScentId, setSelectedScentId] = useState<string | null>(null);
     const [expandedScentId, setExpandedScentId] = useState<string | null>(null); // Track expanded card
     const [showFragranceDetail, setShowFragranceDetail] = useState(false); // View Details
+
+    // Gift Modal State
+    const [showGiftModal, setShowGiftModal] = useState(false);
+
+    // Auth Modal State
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     useEffect(() => {
         const hour = new Date().getHours();
@@ -212,18 +220,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                         {timeGreeting}
                     </h2>
                 </div>
-                {/* 心情记录入口 - 暂时隐藏 */}
-                {/* <button
-                    onClick={handleHeartClick}
-                    className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
-                >
-                    <div className="relative">
-                        {hasNotification && (
-                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-dopamine-pink rounded-full border-2 border-white animate-pulse"></div>
-                        )}
-                        <Calendar className="w-6 h-6 text-ink-gray transition-colors group-hover:text-dopamine-pink" strokeWidth={2} />
-                    </div>
-                </button> */}
+                {/* 右侧按钮组 */}
+                <div className="flex items-center gap-3">
+                    {/* 用户/登录按钮 */}
+                    <button
+                        onClick={() => setShowAuthModal(true)}
+                        className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
+                        title="登录 / 注册"
+                    >
+                        <User className="w-6 h-6 text-ink-gray transition-colors group-hover:text-dopamine-orange" strokeWidth={2} />
+                    </button>
+                    {/* 赠送按钮 */}
+                    <button
+                        onClick={() => setShowGiftModal(true)}
+                        className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
+                        title="将疗愈歌单送给朋友"
+                    >
+                        <Gift className="w-6 h-6 text-ink-gray transition-colors group-hover:text-pink-500" strokeWidth={2} />
+                    </button>
+                </div>
             </div>
 
             {/* Main Content: Scent Selection */}
@@ -641,6 +656,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
                     </div>
                 </div>
             )}
+
+            {/* Gift Setup Modal */}
+            <GiftSetupModal
+                isOpen={showGiftModal}
+                onClose={() => setShowGiftModal(false)}
+            />
+
+            {/* Auth Modal */}
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+            />
         </div>
     );
 };
