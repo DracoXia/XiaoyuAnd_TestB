@@ -61,11 +61,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (onLoadingStatusChange) onLoadingStatusChange(false);
   };
 
+  // Don't render audio element if URL is empty (e.g., "mine" mode uses iframe instead)
+  if (!url || url.trim() === '') {
+    return null;
+  }
+
   return (
-    <audio 
-      ref={audioRef} 
+    <audio
+      ref={audioRef}
       src={url}
-      loop 
+      loop
       preload="auto"
       onCanPlayThrough={handleCanPlay}
       onWaiting={handleWaiting}

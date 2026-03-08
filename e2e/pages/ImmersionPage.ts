@@ -12,6 +12,7 @@ export class ImmersionPage extends BasePage {
   readonly audioToggleButton: Locator;
   readonly moodEntryButton: Locator;
   readonly menuButton: Locator;
+  readonly addPlaylistButton: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -21,6 +22,7 @@ export class ImmersionPage extends BasePage {
     this.audioToggleButton = page.locator('button').filter({ hasText: /静音|播放/ });
     this.moodEntryButton = page.locator('button').filter({ has: this.page.locator('.lucide-book-open') });
     this.menuButton = page.locator('button').filter({ has: this.page.locator('.lucide-menu') });
+    this.addPlaylistButton = page.locator('button').filter({ has: this.page.locator('.lucide-plus') });
   }
 
   /**
@@ -40,7 +42,7 @@ export class ImmersionPage extends BasePage {
   }
 
   /**
-   * Switch ambiance mode (本味/入眠/冥想)
+   * Switch ambiance mode (本味/入眠/冥想/我的)
    */
   async switchAmbianceMode(modeName: string) {
     const modeButton = this.modeButtons.filter({ hasText: modeName });
@@ -71,6 +73,14 @@ export class ImmersionPage extends BasePage {
   async goToDashboard() {
     await this.menuButton.click();
     await this.waitForTransition();
+  }
+
+  /**
+   * Click add playlist button (+) to open playlist modal
+   */
+  async openPlaylistModal() {
+    await this.addPlaylistButton.click();
+    await this.page.waitForTimeout(300);
   }
 
   /**
@@ -107,6 +117,7 @@ export class ImmersionPage extends BasePage {
       original: '本味',
       sleep: '入眠',
       meditate: '冥想',
+      mine: '我的',
     };
     return labels[modeId] || '本味';
   }

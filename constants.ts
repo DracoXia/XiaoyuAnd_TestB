@@ -89,6 +89,14 @@ export const AMBIANCE_MODES = [
     icon: 'wind',
     audioUrl: BROWN_NOISE_URL, // Brown Noise
     theme: 'nature' // Green/Brown
+  },
+  {
+    id: 'mine',
+    label: '我的',
+    icon: 'music',
+    audioUrl: '', // 用户歌单，由运行时动态设置
+    theme: 'personal',
+    requiresPlaylist: true // 标记此模式需要用户设置歌单
   }
 ];
 
