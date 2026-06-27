@@ -21,6 +21,44 @@ const AMBIANCE_TO_AUDIO_MODE: Record<string, AudioMode> = {
     'meditate': 'brown',
 };
 
+type DashboardMoodPreviewState = {
+    step: 'mood' | 'context';
+    scentId: string;
+    moodId: string | null;
+};
+
+const getDashboardMoodPreviewState = (): DashboardMoodPreviewState | null => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const preview = searchParams.get('preview');
+    const scentId = searchParams.get('scent');
+
+    if (!scentId || !FRAGRANCE_LIST.some((fragrance) => fragrance.id === scentId)) {
+        return null;
+    }
+
+    if (preview === 'mood-record') {
+        return {
+            step: 'mood',
+            scentId,
+            moodId: null,
+        };
+    }
+
+    if (preview === 'mood-context') {
+        return {
+            step: 'context',
+            scentId,
+            moodId: searchParams.get('mood'),
+        };
+    }
+
+    return null;
+};
+
 const App: React.FC = () => {
     const [phase, setPhase] = useState<AppPhase>(AppPhase.DASHBOARD);
 
@@ -31,7 +69,7 @@ const App: React.FC = () => {
     const sessionStartRef = useRef<number | null>(null);
 
     // Transition Control States
-    const [showRitualLayer, setShowRitualLayer] = useState(true); // Is Ritual component mounted?
+    const [showRitualLayer, setShowRitualLayer] = useState(false); // Is Ritual component mounted?
     const [fadeRitual, setFadeRitual] = useState(false); // Should Ritual component fade opacity to 0?
 
     // Audio State
@@ -41,14 +79,19 @@ const App: React.FC = () => {
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState(false);
     const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
 
     // Fragrance & Ambiance State
     // Default to the first owned fragrance
     const [activeFragranceId, setActiveFragranceId] = useState(FRAGRANCE_LIST[0].id);
+    const [dashboardActiveScentId, setDashboardActiveScentId] = useState<string | null>(null);
+    const [isDashboardAudioClosing, setIsDashboardAudioClosing] = useState(false);
     const [activeAmbianceId, setActiveAmbianceId] = useState('default');
+    const [dashboardMoodPreview] = useState<DashboardMoodPreviewState | null>(() => getDashboardMoodPreviewState());
 
     // Ref to track volume in closures (fixes stale closure bug in timers)
     const volumeRef = useRef(1);
+    const audioFadeIntervalRef = useRef<number | null>(null);
 
     // AI States
     const [dailySign, setDailySign] = useState<string>("");
@@ -127,10 +170,116 @@ const App: React.FC = () => {
         }
     }, []); // 只在挂载时执行一次
 
+    useEffect(() => {
+        if (!dashboardMoodPreview) {
+            return;
+        }
+
+        const previewFragrance = FRAGRANCE_LIST.find((fragrance) => fragrance.id === dashboardMoodPreview.scentId);
+        if (!previewFragrance) {
+            return;
+        }
+
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+
+        clearAudioFade();
+        sessionStartRef.current = null;
+        setPhase(AppPhase.DASHBOARD);
+        setTreeholeStep(0);
+        setResultStep(0);
+        setSelectedMood("");
+        setSelectedContext("");
+        setHealingText("");
+        setMyMedicine(null);
+        setAiResult(null);
+        setMatchedEcho(null);
+        setWaitingForEcho(false);
+        setIsFlyingAway(false);
+        setShowFeedbackOverlay(false);
+        setLayer2AudioUrl("");
+        setActiveAmbianceId('original');
+        setIsDashboardAudioClosing(false);
+        setShowSummaryModal(false);
+        setActiveFragranceId(previewFragrance.id);
+        setDashboardActiveScentId(previewFragrance.id);
+        setCurrentAudioUrl(previewFragrance.audioUrl || DEFAULT_AUDIO_URL);
+        setVisitedCardIds(new Set());
+        setPathPoints([]);
+        setShowRitualLayer(false);
+        setFadeRitual(false);
+        setVolumeSafely(1);
+        setIsMuted(false);
+        setIsPlaying(false);
+    }, [dashboardMoodPreview]);
+
     // Sync ref with state
     useEffect(() => {
         volumeRef.current = volume;
     }, [volume]);
+
+    const clearAudioFade = () => {
+        if (audioFadeIntervalRef.current !== null) {
+            window.clearInterval(audioFadeIntervalRef.current);
+            audioFadeIntervalRef.current = null;
+        }
+    };
+
+    const setVolumeSafely = (nextVolume: number) => {
+        const clampedVolume = Math.max(0, Math.min(1, nextVolume));
+        volumeRef.current = clampedVolume;
+        setVolume(clampedVolume);
+    };
+
+    const fadeAudioVolume = ({
+        to,
+        durationMs,
+        onComplete,
+    }: {
+        to: number;
+        durationMs: number;
+        onComplete?: () => void;
+    }) => {
+        const from = volumeRef.current;
+        clearAudioFade();
+
+        if (durationMs <= 0 || Math.abs(from - to) < 0.001) {
+            setVolumeSafely(to);
+            onComplete?.();
+            return;
+        }
+
+        const stepMs = 50;
+        const steps = Math.max(1, Math.round(durationMs / stepMs));
+        let currentStep = 0;
+
+        audioFadeIntervalRef.current = window.setInterval(() => {
+            currentStep += 1;
+            const progress = Math.min(currentStep / steps, 1);
+            const nextVolume = from + (to - from) * progress;
+
+            setVolumeSafely(nextVolume);
+
+            if (progress >= 1) {
+                clearAudioFade();
+                onComplete?.();
+            }
+        }, durationMs / steps);
+    };
+
+    const stopAudioPlayback = () => {
+        clearAudioFade();
+        setVolumeSafely(0);
+        setIsPlaying(false);
+    };
+
+    useEffect(() => {
+        return () => {
+            clearAudioFade();
+        };
+    }, []);
 
     // Pre-fetch Sign when entering Ritual
     useEffect(() => {
@@ -217,7 +366,7 @@ const App: React.FC = () => {
     // --- NEW: Handle Start of Interaction on Ritual Page ---
     const handleRitualInteractionStart = () => {
         if (!isPlaying) {
-            setVolume(0); // Ensure silence
+            setVolumeSafely(0); // Ensure silence
             setIsPlaying(true); // Start the stream (Unlock Audio Context)
         }
     };
@@ -249,20 +398,11 @@ const App: React.FC = () => {
         setFadeRitual(true);
 
         // Slow fade in: 8 seconds to reach 90% volume
-        const targetVolume = 0.9;
-        const fadeDuration = 8000; // 8 seconds
-        const fadeSteps = 160; // 50ms per step
-        const volumeStep = targetVolume / fadeSteps;
-        let currentVol = 0;
-
-        const fadeInterval = setInterval(() => {
-            currentVol += volumeStep;
-            if (currentVol >= targetVolume) {
-                currentVol = targetVolume;
-                clearInterval(fadeInterval);
-            }
-            setVolume(currentVol);
-        }, fadeDuration / fadeSteps);
+        setVolumeSafely(0);
+        fadeAudioVolume({
+            to: 0.9,
+            durationMs: 8000,
+        });
 
         setTimeout(() => {
             setShowRitualLayer(false);
@@ -279,6 +419,8 @@ const App: React.FC = () => {
     };
 
     const handleSessionEnd = () => {
+        setDashboardActiveScentId(null);
+
         // Analytics: End session with duration calculation
         const sessionId = getCurrentSessionId();
         if (sessionId && sessionStartRef.current) {
@@ -299,17 +441,14 @@ const App: React.FC = () => {
             timerRef.current = null;
         }
 
-        let currentVol = volumeRef.current;
-
-        const fadeInterval = setInterval(() => {
-            currentVol -= 0.05;
-            if (currentVol <= 0) {
-                currentVol = 0;
-                clearInterval(fadeInterval);
-                setIsPlaying(false);
-            }
-            setVolume(currentVol);
-        }, 100);
+        setIsDashboardAudioClosing(false);
+        fadeAudioVolume({
+            to: 0,
+            durationMs: 1500,
+            onComplete: () => {
+                stopAudioPlayback();
+            },
+        });
 
         setTimeout(() => {
             setPhase(AppPhase.TREEHOLE);
@@ -415,8 +554,8 @@ const App: React.FC = () => {
         });
     };
 
-    const toggleAudio = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const toggleAudio = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         const newIsPlaying = !isPlaying;
 
         // Analytics: Track audio toggle
@@ -431,8 +570,87 @@ const App: React.FC = () => {
             updateAudioMode(sessionId, newAudioMode);
         }
 
+        if (!newIsPlaying) {
+            clearAudioFade();
+        }
+
         setIsPlaying(newIsPlaying);
-        if (newIsPlaying && volume < 0.1) setVolume(1);
+        if (newIsPlaying && volume < 0.1) setVolumeSafely(1);
+    };
+
+    const toggleMute = () => {
+        const newIsMuted = !isMuted;
+
+        trackEvent({ eventType: 'audio_toggle', isPlaying: !newIsMuted, wasManuallyToggled: true });
+
+        const sessionId = getCurrentSessionId();
+        if (sessionId) {
+            const nextAudioMode: AudioMode = newIsMuted
+                ? 'silent'
+                : AMBIANCE_TO_AUDIO_MODE[activeAmbianceId] || 'natural';
+            updateAudioMode(sessionId, nextAudioMode);
+        }
+
+        setIsMuted(newIsMuted);
+    };
+
+    const handleDashboardPlayerClose = () => {
+        const sessionId = getCurrentSessionId();
+        if (sessionId && sessionStartRef.current) {
+            const durationSeconds = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+            endSession(sessionId, durationSeconds, false);
+            sessionStartRef.current = null;
+        }
+
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+
+        setDashboardActiveScentId(null);
+        setIsMuted(false);
+
+        if (!isPlaying || isMuted || volumeRef.current <= 0.01) {
+            setIsDashboardAudioClosing(false);
+            stopAudioPlayback();
+            return;
+        }
+
+        setIsDashboardAudioClosing(true);
+        fadeAudioVolume({
+            to: 0,
+            durationMs: 360,
+            onComplete: () => {
+                setIsDashboardAudioClosing(false);
+                stopAudioPlayback();
+            },
+        });
+    };
+
+    const handleDashboardTimerComplete = () => {
+        const sessionId = getCurrentSessionId();
+        if (sessionId && sessionStartRef.current) {
+            const durationSeconds = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+            endSession(sessionId, durationSeconds, true);
+            updateAudioMode(sessionId, 'silent');
+            sessionStartRef.current = null;
+        }
+
+        if (!isPlaying || isMuted || volumeRef.current <= 0.01) {
+            setIsDashboardAudioClosing(false);
+            stopAudioPlayback();
+            return;
+        }
+
+        setIsDashboardAudioClosing(true);
+        fadeAudioVolume({
+            to: 0,
+            durationMs: 900,
+            onComplete: () => {
+                setIsDashboardAudioClosing(false);
+                stopAudioPlayback();
+            },
+        });
     };
 
     const handleDashboardScenarioClick = (id: string) => {
@@ -450,7 +668,7 @@ const App: React.FC = () => {
         });
         sessionStartRef.current = Date.now(); // Track start time for duration
 
-        // CHANGED: Allow any ID to proceed directly to IMMERSION (Skip Ritual)
+        // CHANGED: Allow any ID to open the inline Dashboard player (skip Ritual/Immersion)
         setTreeholeStep(0);
         setResultStep(0); // Reset result flow
         setSelectedMood("");
@@ -459,10 +677,12 @@ const App: React.FC = () => {
         setMyMedicine(null);
         setAiResult(null);
         setActiveAmbianceId('original'); // CHANGED: Default to 'original' (White Noise)
+        setIsDashboardAudioClosing(false);
         setShowSummaryModal(false); // Reset
 
         // Set the active fragrance for scent-specific theming
         setActiveFragranceId(id);
+        setDashboardActiveScentId(id);
 
         // Set audio URL based on fragrance if available
         const frag = FRAGRANCE_LIST.find(f => f.id === id);
@@ -480,26 +700,15 @@ const App: React.FC = () => {
         setFadeRitual(false);
 
         // Start audio with slow fade in: 8 seconds to reach 90% volume
-        setVolume(0);
+        setVolumeSafely(0);
+        setIsMuted(false);
         setIsPlaying(true);
+        fadeAudioVolume({
+            to: 0.9,
+            durationMs: 8000,
+        });
 
-        const targetVolume = 0.9;
-        const fadeDuration = 8000; // 8 seconds
-        const fadeSteps = 160; // 50ms per step
-        const volumeStep = targetVolume / fadeSteps;
-        let currentVol = 0;
-
-        const fadeInterval = setInterval(() => {
-            currentVol += volumeStep;
-            if (currentVol >= targetVolume) {
-                currentVol = targetVolume;
-                clearInterval(fadeInterval);
-            }
-            setVolume(currentVol);
-        }, fadeDuration / fadeSteps);
-
-        setPhase(AppPhase.IMMERSION); // DIRECT TO IMMERSION
-        startImmersionTimer();
+        setPhase(AppPhase.DASHBOARD);
     };
 
     const handleAmbianceChange = (e: React.MouseEvent, modeId: string) => {
@@ -627,7 +836,7 @@ const App: React.FC = () => {
                                     handleAmbianceChange(e, mode.id);
                                     if (!isPlaying) {
                                         setIsPlaying(true);
-                                        if (volume < 0.1) setVolume(1);
+                                        if (volume < 0.1) setVolumeSafely(1);
                                     }
                                 }}
                                 className={`
@@ -856,6 +1065,20 @@ const App: React.FC = () => {
     };
 
 
+    const isDashboardPlayerActive = phase === AppPhase.DASHBOARD && dashboardActiveScentId !== null;
+    const activeDashboardMoodPreview = dashboardMoodPreview?.scentId === dashboardActiveScentId
+        ? dashboardMoodPreview
+        : null;
+    const shouldPlayMainAudio = isPlaying && activeAmbianceId !== 'mine' && (
+        phase === AppPhase.RITUAL ||
+        phase === AppPhase.IMMERSION ||
+        phase === AppPhase.TREEHOLE ||
+        phase === AppPhase.LANDING ||
+        isDashboardPlayerActive ||
+        isDashboardAudioClosing
+    );
+    const mainAudioVolume = isMuted ? 0 : (layer2AudioUrl ? volume * 0.65 : volume);
+
     return (
         <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-background-zen">
 
@@ -869,8 +1092,8 @@ const App: React.FC = () => {
                 url={currentAudioUrl}
                 // Allow playing in RITUAL phase if explicitly triggered (for preloading)
                 // 当"我的"模式激活时，静音官方音频（iframe 播放用户歌单）
-                isPlaying={isPlaying && activeAmbianceId !== 'mine' && (phase === AppPhase.RITUAL || phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE || phase === AppPhase.LANDING)}
-                volume={layer2AudioUrl ? volume * 0.65 : volume} // Reduce volume by 35% if Layer 2 is active
+                isPlaying={shouldPlayMainAudio}
+                volume={mainAudioVolume} // Reduce volume by 35% if Layer 2 is active
                 onLoadingStatusChange={setIsAudioLoading}
                 onError={() => setAudioError(true)}
             />
@@ -912,7 +1135,7 @@ const App: React.FC = () => {
 
             {phase === AppPhase.IMMERSION && renderImmersion()}
 
-            {showRitualLayer && (
+            {showRitualLayer && phase !== AppPhase.DASHBOARD && (
                 <div className={`absolute inset-0 z-50 transition-opacity duration-[3000ms] ease-in-out ${fadeRitual ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <Ritual
                         onComplete={handleRitualComplete}
@@ -925,7 +1148,20 @@ const App: React.FC = () => {
             )}
 
             {phase === AppPhase.TREEHOLE && renderTreehole()}
-            {phase === AppPhase.DASHBOARD && <Dashboard onScenarioClick={handleDashboardScenarioClick} />}
+            {phase === AppPhase.DASHBOARD && (
+                <Dashboard
+                    onScenarioClick={handleDashboardScenarioClick}
+                    activeScentId={dashboardActiveScentId}
+                    isPlaying={isPlaying}
+                    isMuted={isMuted}
+                    onPlaybackToggle={() => toggleAudio()}
+                    onMuteToggle={toggleMute}
+                    onClosePlayer={handleDashboardPlayerClose}
+                    onTimerComplete={handleDashboardTimerComplete}
+                    previewMoodRecordStep={activeDashboardMoodPreview?.step}
+                    previewMoodRecordMoodId={activeDashboardMoodPreview?.moodId}
+                />
+            )}
 
             {/* Playlist Modal */}
             <PlaylistModal

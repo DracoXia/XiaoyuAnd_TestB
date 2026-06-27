@@ -1,673 +1,1130 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Leaf, Calendar, TrendingUp, Sparkles, X, Feather, MessageCircleHeart, Quote, Check, ChevronUp, Info, ScanLine, Flame, Gift, User } from 'lucide-react';
-import { MOOD_OPTIONS, CONTEXT_OPTIONS, FRAGRANCE_LIST, TEXT_CONTENT, DASHBOARD_DATA } from '../constants'; // Keep DASHBOARD_DATA import to avoid breaking if referenced elsewhere, but won't use it.
-import GiftSetupModal from './GiftSetupModal';
-import AuthModal from './auth/AuthModal';
+import React, { useEffect, useRef, useState } from 'react';
+import { CalendarDays, Check, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, Volume2, VolumeX, X } from 'lucide-react';
+import { FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
+    activeScentId?: string | null;
+    isPlaying?: boolean;
+    isMuted?: boolean;
+    onPlaybackToggle?: () => void;
+    onMuteToggle?: () => void;
+    onClosePlayer?: () => void;
+    onTimerComplete?: () => void;
+    initialRemainingSeconds?: number;
+    previewMoodRecordStep?: 'mood' | 'context' | null;
+    previewMoodRecordMoodId?: string | null;
 }
 
-// Helper to generate mock data
-interface MoodRecord {
-    date: string;
-    day: number;
+type ScentVisual = {
+    englishName: string;
+    quote: string;
+    number: string;
+    gradient: string;
+    glow: string;
+    progressColor: string;
+    Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+};
+
+const DEFAULT_DURATION_MINUTES = 15;
+const TIMER_OPTIONS = [10, 15, 20, 30];
+const STORY_SHEET_EXIT_MS = 220;
+const MOOD_SAVED_DISMISS_MS = 1500;
+const MOOD_RECORD_STORAGE_KEY = 'xiaoyu_scent_mood_records_v1';
+const STORY_SHEET_TITLES: Record<string, string> = {
+    tinghe: '和清净在一起',
+    wanxiang: '和温柔在一起',
+    xiaoyuan: '和自在在一起',
+};
+const BRAND_LOGO_SRC = '/xiaoyuhe-logo.png';
+
+type MoodRecordStep = 'mood' | 'context' | 'saved';
+
+type MoodRecordOption = {
+    id: string;
+    label: string;
+    note: string;
+    positionClassName: string;
+    orbClassName: string;
+    labelClassName?: string;
+};
+
+type MoodContextOption = {
+    id: string;
+    label: string;
+};
+
+type StoredMoodRecord = {
+    version: 1;
+    id: string;
+    createdAt: string;
+    scentId: string;
+    scentName: string;
+    durationMinutes: number;
+    durationSeconds: number;
     moodId: string;
-    context: string;
-    isToday: boolean;
-}
+    mood: string;
+    related: string[];
+};
 
-// Mock Data for "My Echoes" - User submitted content history
-const MY_SUBMISSIONS_MOCK = [
+type WeekDayMoodSummary = {
+    key: string;
+    date: Date;
+    weekday: string;
+    dayLabel: string;
+    records: StoredMoodRecord[];
+};
+
+const MOOD_RECORD_OPTIONS: MoodRecordOption[] = [
     {
-        id: 'm1',
-        content: '明天就要汇报方案了，改了八版还是觉得不够好。心跳好快，手里握着热茶，希望能慢下来。',
-        date: '10.24',
-        time: '22:30',
-        hugs: 128,
-        mood: 'anxious'
+        id: 'calm',
+        label: '平静',
+        note: '想先把心放平一点。',
+        positionClassName: 'left-4 top-3 z-10 w-20',
+        orbClassName: 'h-[4.75rem] w-[4.75rem] bg-[#e7f0dd] shadow-[#d8e9cd]/45',
+        labelClassName: 'text-[15px] font-semibold text-slate-700',
     },
     {
-        id: 'm2',
-        content: '在这个城市搬了第五次家，打包箱子的时候突然觉得好累。想回老家晒太阳，做一只无所事事的猫。',
-        date: '10.23',
-        time: '19:15',
-        hugs: 210,
-        mood: 'tired'
+        id: 'contented',
+        label: '满足',
+        note: '好像有一点刚刚好。',
+        positionClassName: 'right-4 top-4 z-10 w-20',
+        orbClassName: 'h-[4.75rem] w-[4.75rem] bg-[#f4eadb] shadow-[#ebddc4]/45',
+        labelClassName: 'text-[15px] font-semibold text-slate-700',
     },
     {
-        id: 'm3',
-        content: '大家都说25岁该稳定了，可我还在想去流浪。究竟是随波逐流容易，还是坚持自己更难？脑子像一团乱麻。',
-        date: '10.22',
-        time: '23:45',
-        hugs: 341,
-        mood: 'confused'
+        id: 'relaxed',
+        label: '轻松',
+        note: '身上松下来了一点。',
+        positionClassName: 'left-1/2 top-[4.75rem] z-10 w-20 -translate-x-1/2',
+        orbClassName: 'h-[4.25rem] w-[4.25rem] bg-[#e1edf2] shadow-[#d4e6ed]/45',
+        labelClassName: 'text-[15px] font-semibold text-slate-700',
     },
     {
-        id: 'm4',
-        content: '路过那家我们常去的火锅店，味道还是香的，只是对面再也不会有另外一副碗筷了。眼泪掉进调料碗里，有点咸。',
-        date: '10.20',
-        time: '20:00',
-        hugs: 232,
-        mood: 'sad'
+        id: 'tired',
+        label: '疲惫',
+        note: '今天已经用掉很多力气。',
+        positionClassName: 'right-6 top-[9.75rem] z-0 w-[4.5rem]',
+        orbClassName: 'h-16 w-16 bg-[#dbe5f3] shadow-[#d5deef]/45',
     },
     {
-        id: 'm5',
-        content: '雨天，不开灯。窝在沙发里听雨打窗户的声音，像大自然在敲摩斯密码。这一刻，时间停止了。',
-        date: '10.18',
-        time: '14:20',
-        hugs: 77,
-        mood: 'calm'
+        id: 'anxious',
+        label: '焦虑',
+        note: '脑子和心都还有点悬着。',
+        positionClassName: 'left-1/2 top-[11.25rem] z-0 w-[4.5rem] -translate-x-1/2',
+        orbClassName: 'h-14 w-14 bg-[#f5dfd9] shadow-[#edd1c9]/45',
     },
     {
-        id: 'm6',
-        content: '买咖啡时因为是第100位顾客被免单了！虽然只是一杯美式，但感觉今天的运气能通过咖啡因传遍全身。',
-        date: '10.15',
-        time: '09:30',
-        hugs: 56,
-        mood: 'joy'
-    }
+        id: 'low',
+        label: '低落',
+        note: '情绪有点往下沉。',
+        positionClassName: 'left-6 top-[9.75rem] z-0 w-[4.5rem]',
+        orbClassName: 'h-16 w-16 bg-[#eee1ef] shadow-[#e6d5e7]/45',
+    },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ onScenarioClick }) => {
-    const [timeGreeting, setTimeGreeting] = useState("安好");
-    const [hasNotification, setHasNotification] = useState(true);
-    const [showMoodMap, setShowMoodMap] = useState(false);
-    const [moodMapView, setMoodMapView] = useState<'calendar' | 'echoes'>('calendar');
+const MOOD_CONTEXT_OPTIONS: MoodContextOption[] = [
+    { id: 'work', label: '工作' },
+    { id: 'family', label: '家人' },
+    { id: 'relationship', label: '关系' },
+    { id: 'sleep', label: '睡眠' },
+    { id: 'body', label: '身体' },
+    { id: 'money', label: '钱' },
+    { id: 'future', label: '未来' },
+    { id: 'self', label: '自己' },
+    { id: 'weather', label: '天气' },
+    { id: 'room', label: '房间' },
+    { id: 'sentence', label: '一句话' },
+    { id: 'unclear', label: '说不清' },
+];
 
-    // New Scent Selection State
-    const [selectedScentId, setSelectedScentId] = useState<string | null>(null);
-    const [expandedScentId, setExpandedScentId] = useState<string | null>(null); // Track expanded card
-    const [showFragranceDetail, setShowFragranceDetail] = useState(false); // View Details
+const readStoredMoodRecords = (): StoredMoodRecord[] => {
+    if (typeof window === 'undefined') return [];
 
-    // Gift Modal State
-    const [showGiftModal, setShowGiftModal] = useState(false);
+    try {
+        const rawRecords = window.localStorage.getItem(MOOD_RECORD_STORAGE_KEY);
+        if (!rawRecords) return [];
 
-    // Auth Modal State
-    const [showAuthModal, setShowAuthModal] = useState(false);
+        const parsedRecords = JSON.parse(rawRecords);
+        return Array.isArray(parsedRecords) ? parsedRecords : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveMoodRecord = (record: StoredMoodRecord) => {
+    if (typeof window === 'undefined') return;
+
+    const existingRecords = readStoredMoodRecords();
+    window.localStorage.setItem(MOOD_RECORD_STORAGE_KEY, JSON.stringify([record, ...existingRecords]));
+};
+
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+
+const formatDateKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+const formatDisplayDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+
+const isValidDate = (date: Date) => Number.isFinite(date.getTime());
+
+const getMoodVisual = (moodId: string) => {
+    switch (moodId) {
+        case 'calm':
+            return { dot: '#a8b995', glow: 'rgba(168, 185, 149, 0.35)', wash: 'rgba(231, 240, 221, 0.68)' };
+        case 'contented':
+            return { dot: '#d8aa66', glow: 'rgba(216, 170, 102, 0.35)', wash: 'rgba(244, 234, 219, 0.72)' };
+        case 'relaxed':
+            return { dot: '#90b8c6', glow: 'rgba(144, 184, 198, 0.35)', wash: 'rgba(225, 237, 242, 0.72)' };
+        case 'tired':
+            return { dot: '#9aa9bf', glow: 'rgba(154, 169, 191, 0.32)', wash: 'rgba(219, 229, 243, 0.68)' };
+        case 'anxious':
+            return { dot: '#d99b91', glow: 'rgba(217, 155, 145, 0.34)', wash: 'rgba(245, 223, 217, 0.72)' };
+        case 'low':
+            return { dot: '#bfa8c8', glow: 'rgba(191, 168, 200, 0.34)', wash: 'rgba(238, 225, 239, 0.72)' };
+        default:
+            return { dot: '#b7abbc', glow: 'rgba(183, 171, 188, 0.28)', wash: 'rgba(255, 255, 255, 0.58)' };
+    }
+};
+
+const getRecentWeekSummaries = (records: StoredMoodRecord[]): WeekDayMoodSummary[] => {
+    const today = new Date();
+
+    return Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(today);
+        date.setHours(0, 0, 0, 0);
+        date.setDate(today.getDate() - (6 - index));
+        const key = formatDateKey(date);
+        const recordsForDay = records.filter((record) => {
+            const recordDate = new Date(record.createdAt);
+            return isValidDate(recordDate) && formatDateKey(recordDate) === key;
+        });
+
+        return {
+            key,
+            date,
+            weekday: WEEKDAY_LABELS[date.getDay()],
+            dayLabel: formatDisplayDate(date),
+            records: recordsForDay,
+        };
+    });
+};
+
+const SCENT_VISUALS: Record<string, ScentVisual> = {
+    tinghe: {
+        englishName: 'Listening to Lotus',
+        quote: '雨后初晴的清冽与苦涩',
+        number: '01',
+        gradient: 'linear-gradient(135deg, #f4e1dc 0%, #e8bab1 100%)',
+        glow: 'rgba(226, 156, 146, 0.32)',
+        progressColor: '#cb877c',
+        Icon: CloudRain,
+    },
+    wanxiang: {
+        englishName: 'Evening Lane',
+        quote: '暮色浸染的木质微光',
+        number: '02',
+        gradient: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
+        glow: 'rgba(255, 224, 178, 0.42)',
+        progressColor: '#d8aa66',
+        Icon: Moon,
+    },
+    xiaoyuan: {
+        englishName: 'Small Courtyard',
+        quote: '青苔漫过石阶的呼吸',
+        number: '03',
+        gradient: 'linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%)',
+        glow: 'rgba(220, 237, 200, 0.42)',
+        progressColor: '#9eb68a',
+        Icon: Leaf,
+    },
+};
+
+const FALLBACK_VISUAL: ScentVisual = {
+    englishName: 'Scent Story',
+    quote: '打开这一支香的气味故事',
+    number: '00',
+    gradient: 'linear-gradient(135deg, #f8f2fa 0%, #e6e0e9 100%)',
+    glow: 'rgba(230, 224, 233, 0.36)',
+    progressColor: '#c8a0f0',
+    Icon: Leaf,
+};
+
+const STORY_OCCASIONS: Record<string, string> = {
+    tinghe: '适合一个人静静坐一会儿，或想把房间里的杂音慢慢放低的时候。',
+    wanxiang: '适合傍晚回家、洗完澡、或想让心先落回身体里的时候。',
+    xiaoyuan: '适合午后透气、开窗发呆、或想把呼吸重新拉长一点的时候。',
+};
+
+const formatTime = (totalSeconds: number) => {
+    const safeSeconds = Math.max(0, totalSeconds);
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+
+    return {
+        minutes: String(minutes),
+        seconds: `:${String(seconds).padStart(2, '0')}`,
+    };
+};
+
+const Dashboard: React.FC<DashboardProps> = ({
+    onScenarioClick,
+    activeScentId,
+    isPlaying,
+    isMuted = false,
+    onPlaybackToggle,
+    onMuteToggle,
+    onClosePlayer,
+    onTimerComplete,
+    initialRemainingSeconds: initialRemainingSecondsProp,
+    previewMoodRecordStep,
+    previewMoodRecordMoodId,
+}) => {
+    const initialRemainingSeconds = Math.max(0, initialRemainingSecondsProp ?? DEFAULT_DURATION_MINUTES * 60);
+    const [localActiveScentId, setLocalActiveScentId] = useState<string | null>(null);
+    const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
+    const [pendingDurationMinutes, setPendingDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
+    const [remainingSeconds, setRemainingSeconds] = useState(initialRemainingSeconds);
+    const [showTimerSettings, setShowTimerSettings] = useState(false);
+    const [showStory, setShowStory] = useState(false);
+    const [isStoryClosing, setIsStoryClosing] = useState(false);
+    const [showMoodRecorder, setShowMoodRecorder] = useState(false);
+    const [moodRecordStep, setMoodRecordStep] = useState<MoodRecordStep>('mood');
+    const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
+    const [showWeeklyMood, setShowWeeklyMood] = useState(false);
+    const [weeklyMoodRecords, setWeeklyMoodRecords] = useState<StoredMoodRecord[]>([]);
+    const [selectedWeekDayKey, setSelectedWeekDayKey] = useState<string | null>(null);
+    const completionNotifiedRef = useRef(false);
+    const storyCloseTimeoutRef = useRef<number | null>(null);
+    const moodSavedTimeoutRef = useRef<number | null>(null);
+
+    const playerScentId = activeScentId !== undefined ? activeScentId : localActiveScentId;
+    const activeScent = FRAGRANCE_LIST.find((scent) => scent.id === playerScentId) ?? null;
+    const activeVisual = activeScent ? SCENT_VISUALS[activeScent.id] ?? FALLBACK_VISUAL : FALLBACK_VISUAL;
+    const playerIsPlaying = isPlaying ?? Boolean(activeScent);
+    const activeModalContent = activeScent ? TEXT_CONTENT.product.modal[activeScent.id] : null;
+    const storyContent = activeScent
+        ? TEXT_CONTENT.product.modal[activeScent.id]?.story?.content ?? [activeScent.story || activeVisual.quote]
+        : [];
+    const focusCopyLines = storyContent.length > 0
+        ? storyContent.slice(0, 2)
+        : activeScent?.story
+            ? activeScent.story.split('\n\n').filter(Boolean).slice(0, 2)
+            : [activeVisual.quote];
+    const ingredientTags = activeScent?.ingredients ?? [];
+    const storyIngredientList =
+        activeModalContent?.ingredients?.list ??
+        ingredientTags.map((ingredient) => ({
+            name: ingredient,
+            desc: '',
+        }));
+    const storyOccasionLead =
+        activeScent?.vibe && activeScent.vibe.includes('：')
+            ? activeScent.vibe.split('：')[1]
+            : activeScent?.vibe ?? '';
+    const storyOccasionBody = activeScent ? STORY_OCCASIONS[activeScent.id] ?? '适合想把自己慢慢放回当下的时候。' : '';
+    const storySheetTitle = activeScent ? STORY_SHEET_TITLES[activeScent.id] ?? `${activeScent.name}的制香师说` : '制香师说';
+    const timeParts = formatTime(remainingSeconds);
+    const selectedMood = selectedMoodId ? MOOD_RECORD_OPTIONS.find((option) => option.id === selectedMoodId) ?? null : null;
+    const weekSummaries = getRecentWeekSummaries(weeklyMoodRecords);
+    const selectedWeekDay =
+        weekSummaries.find((day) => day.key === selectedWeekDayKey) ?? weekSummaries[weekSummaries.length - 1] ?? null;
+    const selectedWeekRecords = selectedWeekDay?.records ?? [];
+    const selectedWeekRecord = selectedWeekRecords[0] ?? null;
+    const selectedWeekRecordDate = selectedWeekRecord ? new Date(selectedWeekRecord.createdAt) : null;
+    const selectedWeekRecordTime =
+        selectedWeekRecordDate && isValidDate(selectedWeekRecordDate)
+            ? selectedWeekRecordDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+            : '刚刚';
+    const selectedWeekRecordVisual = selectedWeekRecord ? getMoodVisual(selectedWeekRecord.moodId) : null;
+    const weeklyRecordCount = weekSummaries.reduce((total, day) => total + day.records.length, 0);
+
+    const clearStoryCloseTimeout = () => {
+        if (storyCloseTimeoutRef.current !== null) {
+            window.clearTimeout(storyCloseTimeoutRef.current);
+            storyCloseTimeoutRef.current = null;
+        }
+    };
+
+    const clearMoodSavedTimeout = () => {
+        if (moodSavedTimeoutRef.current !== null) {
+            window.clearTimeout(moodSavedTimeoutRef.current);
+            moodSavedTimeoutRef.current = null;
+        }
+    };
+
+    const resetMoodRecorder = () => {
+        clearMoodSavedTimeout();
+        setShowMoodRecorder(false);
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+    };
+
+    const scheduleMoodSavedDismiss = () => {
+        clearMoodSavedTimeout();
+        moodSavedTimeoutRef.current = window.setTimeout(() => {
+            moodSavedTimeoutRef.current = null;
+            resetMoodRecorder();
+        }, MOOD_SAVED_DISMISS_MS);
+    };
+
+    const openStorySheet = () => {
+        clearStoryCloseTimeout();
+        setIsStoryClosing(false);
+        setShowStory(true);
+    };
+
+    const closeStorySheet = () => {
+        if (!showStory || isStoryClosing) return;
+
+        clearStoryCloseTimeout();
+        setIsStoryClosing(true);
+        storyCloseTimeoutRef.current = window.setTimeout(() => {
+            setShowStory(false);
+            setIsStoryClosing(false);
+            storyCloseTimeoutRef.current = null;
+        }, STORY_SHEET_EXIT_MS);
+    };
 
     useEffect(() => {
-        const hour = new Date().getHours();
-        if (hour < 11) setTimeGreeting("早安");
-        else if (hour < 18) setTimeGreeting("午安");
-        else setTimeGreeting("晚安");
+        if (!activeScent) return;
+
+        setDurationMinutes(DEFAULT_DURATION_MINUTES);
+        setPendingDurationMinutes(DEFAULT_DURATION_MINUTES);
+        setRemainingSeconds(initialRemainingSeconds);
+        setShowTimerSettings(false);
+        setShowStory(false);
+        setIsStoryClosing(false);
+        setShowMoodRecorder(false);
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+        clearStoryCloseTimeout();
+        clearMoodSavedTimeout();
+        completionNotifiedRef.current = false;
+    }, [activeScent?.id, initialRemainingSeconds]);
+
+    useEffect(() => {
+        return () => {
+            clearStoryCloseTimeout();
+            clearMoodSavedTimeout();
+        };
     }, []);
 
-    // Generate Mock Mood History (Last 30 days)
-    const moodHistory = useMemo(() => {
-        const history: MoodRecord[] = [];
-        const today = new Date();
+    useEffect(() => {
+        if (!activeScent || !playerIsPlaying || remainingSeconds <= 0) return;
 
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - i);
+        const intervalId = window.setInterval(() => {
+            setRemainingSeconds((current) => Math.max(0, current - 1));
+        }, 1000);
 
-            // Randomly assign a mood (70% chance to have a record)
-            const hasRecord = Math.random() > 0.3 || i === 0; // Today always has record
+        return () => window.clearInterval(intervalId);
+    }, [activeScent, playerIsPlaying, remainingSeconds]);
 
-            if (hasRecord) {
-                const randomMood = MOOD_OPTIONS[Math.floor(Math.random() * MOOD_OPTIONS.length)];
-                const randomContext = CONTEXT_OPTIONS[Math.floor(Math.random() * CONTEXT_OPTIONS.length)];
+    useEffect(() => {
+        if (!activeScent || remainingSeconds > 0 || completionNotifiedRef.current) return;
 
-                history.push({
-                    date: `${date.getMonth() + 1}.${date.getDate()}`,
-                    day: date.getDate(),
-                    moodId: randomMood.id,
-                    context: randomContext,
-                    isToday: i === 0
-                });
-            } else {
-                history.push({
-                    date: `${date.getMonth() + 1}.${date.getDate()}`,
-                    day: date.getDate(),
-                    moodId: 'empty',
-                    context: '',
-                    isToday: false
-                });
-            }
+        completionNotifiedRef.current = true;
+        setShowTimerSettings(false);
+        setShowStory(false);
+        setIsStoryClosing(false);
+        clearStoryCloseTimeout();
+        clearMoodSavedTimeout();
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+        setShowMoodRecorder(true);
+        onTimerComplete?.();
+    }, [activeScent, onTimerComplete, remainingSeconds]);
+
+    useEffect(() => {
+        if (!activeScent || !previewMoodRecordStep) return;
+
+        const previewMoodId = MOOD_RECORD_OPTIONS.some((option) => option.id === previewMoodRecordMoodId)
+            ? previewMoodRecordMoodId
+            : MOOD_RECORD_OPTIONS[0]?.id ?? null;
+
+        setShowTimerSettings(false);
+        setShowStory(false);
+        setIsStoryClosing(false);
+        clearStoryCloseTimeout();
+        clearMoodSavedTimeout();
+        setShowMoodRecorder(true);
+
+        if (previewMoodRecordStep === 'context' && previewMoodId) {
+            setSelectedMoodId(previewMoodId);
+            setMoodRecordStep('context');
+            return;
         }
-        return history;
-    }, []);
 
-    const recentRecords = useMemo(() => {
-        return moodHistory.filter(h => h.moodId !== 'empty').reverse().slice(0, 4);
-    }, [moodHistory]);
+        setSelectedMoodId(null);
+        setMoodRecordStep('mood');
+    }, [activeScent, previewMoodRecordMoodId, previewMoodRecordStep]);
 
-    const handleHeartClick = () => {
-        setHasNotification(false);
-        setShowMoodMap(true);
-        setMoodMapView('calendar');
+    const handleOpenScent = (scentId: string) => {
+        setLocalActiveScentId(scentId);
+        onScenarioClick(scentId);
     };
 
-    const getMoodConfig = (id: string) => {
-        return MOOD_OPTIONS.find(m => m.id === id) || { icon: '', style: 'bg-gray-100', label: '' };
+    const handleClosePlayer = () => {
+        setLocalActiveScentId(null);
+        setShowTimerSettings(false);
+        setShowStory(false);
+        setIsStoryClosing(false);
+        setShowMoodRecorder(false);
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+        clearStoryCloseTimeout();
+        clearMoodSavedTimeout();
+        onClosePlayer?.();
     };
 
-    const handleConfirmScent = () => {
-        if (selectedScentId) {
-            onScenarioClick(selectedScentId);
-        }
+    const handleConfirmDuration = () => {
+        setDurationMinutes(pendingDurationMinutes);
+        setRemainingSeconds(pendingDurationMinutes * 60);
+        completionNotifiedRef.current = false;
+        setShowTimerSettings(false);
     };
 
-    // Handle card click for expand/collapse
-    const handleCardClick = (scentId: string, status: string) => {
-        if (status === 'locked') return;
-
-        if (expandedScentId === scentId) {
-            // Already expanded - collapse
-            setExpandedScentId(null);
-        } else {
-            // Expand this card and select it
-            setExpandedScentId(scentId);
-            setSelectedScentId(scentId);
-        }
+    const handleMoodSelect = (moodId: string) => {
+        setSelectedMoodId(moodId);
+        setMoodRecordStep('context');
     };
 
-    // Get accent color class based on scent id - 低饱和度大地色调
-    const getAccentColorClass = (scentId: string): string => {
-        const colorMap: Record<string, string> = {
-            'tinghe': 'bg-lotus-pink-dark',      // 莲粉 - #c4a5a0
-            'wanxiang': 'bg-osmanthus-gold-dark', // 桂金 - #c4a890
-            'xiaoyuan': 'bg-moss-green-dark',    // 苔绿 - #9aab9a
-            'white_tea': 'bg-osmanthus-gold-dark',
-            'osmanthus': 'bg-osmanthus-gold-dark',
-            'rose': 'bg-lotus-pink-dark',
+    const handleSaveMoodRecord = (contextIds: string[]) => {
+        if (!activeScent || !selectedMood) return;
+
+        const related = contextIds
+            .map((contextId) => MOOD_CONTEXT_OPTIONS.find((option) => option.id === contextId)?.label)
+            .filter((label): label is string => Boolean(label));
+        const createdAt = new Date().toISOString();
+
+        const record: StoredMoodRecord = {
+            version: 1,
+            id: `${createdAt}-${activeScent.id}`,
+            createdAt,
+            scentId: activeScent.id,
+            scentName: activeScent.name,
+            durationMinutes,
+            durationSeconds: durationMinutes * 60,
+            moodId: selectedMood.id,
+            mood: selectedMood.label,
+            related,
         };
-        return colorMap[scentId] || 'bg-earth-taupe';
+
+        saveMoodRecord(record);
+        setWeeklyMoodRecords(readStoredMoodRecords());
+        setMoodRecordStep('saved');
+        scheduleMoodSavedDismiss();
     };
 
-    // Get gradient and theme colors for expanded card based on scent id
-    // 使用低饱和度大地色调，但保持三款香的区分度
-    const getScentTheme = (scentId: string): { gradient: string; bgOverlay: string; textColor: string; cardBg: string } => {
-        const themeMap: Record<string, { gradient: string; bgOverlay: string; textColor: string; cardBg: string }> = {
-            'tinghe': {
-                // 莲粉 - 明显的粉色调
-                gradient: 'linear-gradient(145deg, rgba(232, 204, 200, 0.35) 0%, rgba(196, 144, 138, 0.2) 50%, rgba(196, 144, 138, 0.15) 100%)',
-                bgOverlay: 'rgba(232, 204, 200, 0.15)',
-                textColor: '#c4908a', // lotus-pink-dark (更明显的粉)
-                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
-            },
-            'wanxiang': {
-                // 桂金 - 明显的金色调
-                gradient: 'linear-gradient(145deg, rgba(232, 220, 192, 0.35) 0%, rgba(196, 160, 96, 0.25) 50%, rgba(196, 160, 96, 0.15) 100%)',
-                bgOverlay: 'rgba(232, 220, 192, 0.15)',
-                textColor: '#c4a060', // osmanthus-gold-dark (更明显的金)
-                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
-            },
-            'xiaoyuan': {
-                // 苔绿 - 低饱和度绿色调
-                gradient: 'linear-gradient(145deg, rgba(212, 221, 212, 0.3) 0%, rgba(148, 155, 138, 0.2) 50%, rgba(154, 171, 154, 0.15) 100%)',
-                bgOverlay: 'rgba(212, 221, 212, 0.1)',
-                textColor: '#9aab9a', // moss-green-dark
-                cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
-            },
-        };
-        return themeMap[scentId] || {
-            gradient: 'linear-gradient(145deg, rgba(141, 125, 119, 0.12) 0%, rgba(191, 165, 148, 0.08) 100%)',
-            bgOverlay: 'rgba(141, 125, 119, 0.05)',
-            textColor: '#8d7d77', // earth-taupe
-            cardBg: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,242,0.9) 100%)'
-        };
+    const handleContextSelect = (contextId: string) => {
+        handleSaveMoodRecord([contextId]);
     };
 
-    return (
-        <div className="absolute inset-0 bg-background-zen z-50 overflow-hidden animate-fade-in font-sans flex flex-col">
-            {/* Header */}
-            <div className="flex-none px-8 py-6 flex justify-between items-center z-20">
-                <div className="flex flex-col">
-                    <span className="text-sm font-bold text-ink-light tracking-wider uppercase mb-1">小屿和 · 香</span>
-                    <h2 className="text-3xl font-bold text-ink-gray">
-                        {timeGreeting}
-                    </h2>
-                </div>
-                {/* 右侧按钮组 */}
-                <div className="flex items-center gap-3">
-                    {/* 用户/登录按钮 */}
-                    <button
-                        onClick={() => setShowAuthModal(true)}
-                        className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
-                        title="登录 / 注册"
-                    >
-                        <User className="w-6 h-6 text-ink-gray transition-colors group-hover:text-dopamine-orange" strokeWidth={2} />
-                    </button>
-                    {/* 赠送按钮 */}
-                    <button
-                        onClick={() => setShowGiftModal(true)}
-                        className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-105 transition-transform border border-gray-100 active:scale-95 group"
-                        title="将疗愈歌单送给朋友"
-                    >
-                        <Gift className="w-6 h-6 text-ink-gray transition-colors group-hover:text-pink-500" strokeWidth={2} />
-                    </button>
-                </div>
-            </div>
+    const handleSkipMoodRecord = () => {
+        resetMoodRecorder();
+    };
 
-            {/* Main Content: Scent Selection */}
-            <div className="flex-1 flex flex-col px-6 pb-8 overflow-y-auto no-scrollbar">
+    const handleSkipMoodContext = () => {
+        handleSaveMoodRecord([]);
+    };
 
-                <div className="mb-6 mt-4">
-                    <h3 className="text-xl font-bold text-ink-gray mb-2">确认今日香型</h3>
-                    <p className="text-sm text-ink-gray opacity-60">轻触确认，开启此刻的疗愈</p>
-                </div>
+    const openWeeklyMoodSheet = () => {
+        const storedRecords = readStoredMoodRecords();
+        const summaries = getRecentWeekSummaries(storedRecords);
+        const latestRecordedDay = [...summaries].reverse().find((day) => day.records.length > 0);
+        const fallbackDay = summaries[summaries.length - 1] ?? null;
 
-                {/* Scent List */}
-                <div className="space-y-3 pb-8">
-                    {FRAGRANCE_LIST.map((scent) => {
-                        const isSelected = selectedScentId === scent.id;
-                        const isExpanded = expandedScentId === scent.id;
-                        const isLocked = scent.status === 'locked';
-                        const accentColorClass = getAccentColorClass(scent.id);
+        setWeeklyMoodRecords(storedRecords);
+        setSelectedWeekDayKey((latestRecordedDay ?? fallbackDay)?.key ?? null);
+        setShowWeeklyMood(true);
+    };
 
-                        const theme = getScentTheme(scent.id);
+    const closeWeeklyMoodSheet = () => {
+        setShowWeeklyMood(false);
+    };
 
-                        return (
-                            <div
-                                key={scent.id}
-                                id={`scent-card-${scent.id}`}
-                                onClick={() => handleCardClick(scent.id, scent.status)}
-                                style={isExpanded ? { background: theme.cardBg } : undefined}
-                                className={`
-                                    relative overflow-hidden transition-all duration-400 ease-out border
-                                    ${isLocked ? 'opacity-60 grayscale cursor-not-allowed bg-gray-50/50 border-transparent' : 'cursor-pointer'}
-                                    ${isExpanded
-                                        ? 'aspect-[4/5] max-w-[85vw] mx-auto rounded-[2rem] backdrop-blur-xl border-white/60 shadow-xl animate-card-expand z-20 my-4'
-                                        : 'h-20 rounded-2xl'}
-                                    ${isSelected && !isExpanded
-                                        ? 'bg-white border-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]'
-                                        : !isExpanded && 'bg-white/40 hover:bg-white/70 border-white/40 backdrop-blur-md hover:shadow-sm'}
-                                `}
-                            >
-                                {isExpanded ? (
-                                    // Expanded Card Content - Simplified elegant layout
-                                    <div
-                                        className="p-8 flex flex-col h-full animate-fade-in-up"
-                                        style={{ background: theme.gradient }}
-                                    >
-                                        {/* Top Badge & Check */}
-                                        <div className="flex justify-between items-start mb-auto">
-                                            <div className="flex flex-wrap gap-1.5 max-w-[70%]">
-                                                {scent.ingredients.slice(0, 2).map((ing, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className="px-3 py-1 rounded-full text-[10px] font-medium bg-white/40 backdrop-blur-md border border-white/50 text-[#8d7d77]"
-                                                    >
-                                                        {ing}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div
-                                                className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-sm ml-auto shrink-0"
-                                            >
-                                                <Check
-                                                    className="w-5 h-5"
-                                                    strokeWidth={2.5}
-                                                    style={{ color: '#949b8a' }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Main Content - Title and Story */}
-                                        <div className="mt-8">
-                                            <h4 className="text-3xl font-serif font-bold text-ink-gray leading-tight mb-3">
-                                                {scent.name}
-                                            </h4>
-                                            {scent.story && (
-                                                <p className="text-sm text-[#8d7d77] leading-relaxed max-w-[85%] font-serif">
-                                                    {scent.story}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        {/* Bottom Actions: Primary Ignite + Secondary Info */}
-                                        <div className="flex items-center gap-3 pt-8 mt-8">
-                                            {/* Info Button (Small, Secondary) */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setShowFragranceDetail(true);
-                                                }}
-                                                className="w-14 h-14 flex items-center justify-center bg-white rounded-2xl shadow-lg shadow-ink-gray/5 border border-white/50 text-ink-gray hover:scale-105 transition-transform shrink-0"
-                                            >
-                                                <Info className="w-6 h-6" strokeWidth={1.5} />
-                                            </button>
-
-                                            {/* Ignite Button (Primary, Wide) */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleConfirmScent();
-                                                }}
-                                                className="flex-1 h-16 bg-[#3a3530] text-[#f2ede4] rounded-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-[#3a3530]/90 transition-colors active:scale-95"
-                                            >
-                                                <Flame className="w-5 h-5" strokeWidth={1.5} />
-                                                <span className="font-serif italic text-lg tracking-wide">点一支</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // Collapsed Card Content
-                                    <div className="h-full flex items-center px-5 gap-4">
-                                        {/* Color Indicator */}
-                                        <div className={`w-1.5 h-8 rounded-full ${accentColorClass} ${isLocked ? 'opacity-30' : ''}`}></div>
-
-                                        {/* Text Content */}
-                                        <div className="flex-1 flex flex-col justify-center">
-                                            <h4 className={`font-bold text-lg leading-tight ${isSelected ? 'text-ink-gray' : 'text-ink-gray/80'}`}>
-                                                {scent.name.split(' · ')[0]}
-                                            </h4>
-                                            <span className="text-xs text-ink-light font-medium tracking-widest opacity-70">
-                                                {scent.desc}
-                                            </span>
-                                        </div>
-
-                                        {/* Right Side: Icon/Status */}
-                                        <div className="flex items-center justify-center w-[4.5rem]">
-                                            {isSelected ? (
-                                                <div className="bg-dopamine-orange text-white rounded-full p-1 animate-scale-in shadow-sm">
-                                                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                                                </div>
-                                            ) : (
-                                                !isLocked && <div className={`w-2 h-2 rounded-full ${accentColorClass} opacity-20`}></div>
-                                            )}
-                                            {isLocked && (
-                                                <div className="flex flex-col items-center gap-0.5 opacity-40">
-                                                    <ScanLine className="w-4 h-4 text-ink-gray" />
-                                                    <span className="text-[9px] font-bold text-ink-gray transform scale-90">待解锁</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-
-            {/* Mood Map Modal (Kept from original) */}
-            {showMoodMap && (
-                <>
-                    <div
-                        className="fixed inset-0 bg-ink-gray/20 backdrop-blur-sm z-[60] animate-fade-in"
-                        onClick={() => setShowMoodMap(false)}
-                    />
-                    <div className="fixed bottom-0 left-0 right-0 z-[70] bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] p-8 transform animate-fade-in max-h-[85vh] overflow-y-auto no-scrollbar border-t border-white/60">
-
-                        {/* Header */}
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 className="font-bold text-2xl text-ink-gray flex items-center gap-2">
-                                    <Calendar className="w-6 h-6 text-dopamine-purple" />
-                                    心情足迹
-                                </h3>
-                                <p className="text-xs text-ink-light mt-1 font-medium">记录每一个真实的当下</p>
-                            </div>
-                            <button onClick={() => setShowMoodMap(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
-                                <X className="w-5 h-5 text-ink-gray" />
-                            </button>
-                        </div>
-
-                        {/* View Switcher (Tabs) */}
-                        <div className="bg-gray-100/80 p-1.5 rounded-2xl flex items-center mb-8 relative">
-                            <div
-                                className={`absolute inset-y-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-spring ${moodMapView === 'calendar' ? 'left-1.5' : 'left-[calc(50%+3px)]'}`}
-                            />
-                            <button
-                                onClick={() => setMoodMapView('calendar')}
-                                className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors ${moodMapView === 'calendar' ? 'text-ink-gray' : 'text-ink-light'}`}
-                            >
-                                心情日历
-                            </button>
-                            <button
-                                onClick={() => setMoodMapView('echoes')}
-                                className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors ${moodMapView === 'echoes' ? 'text-ink-gray' : 'text-ink-light'}`}
-                            >
-                                留下的光
-                            </button>
-                        </div>
-
-                        {moodMapView === 'calendar' ? (
-                            // --- VIEW 1: CALENDAR & RECENT ---
-                            <div className="animate-fade-in">
-                                {/* Calendar Grid */}
-                                <div className="bg-white/50 rounded-[2rem] p-6 mb-8 border border-white shadow-sm">
-                                    <div className="flex justify-between items-end mb-4">
-                                        <span className="text-sm font-bold text-ink-gray">近30天</span>
-                                        <span className="text-[10px] text-ink-light bg-white px-2 py-1 rounded-full">Today</span>
-                                    </div>
-                                    <div className="grid grid-cols-7 gap-3">
-                                        {moodHistory.map((record, index) => {
-                                            if (record.moodId === 'empty') {
-                                                return (
-                                                    <div key={index} className="aspect-square rounded-full bg-gray-100/50 flex items-center justify-center">
-                                                        <span className="text-[8px] text-gray-300">{record.day}</span>
-                                                    </div>
-                                                );
-                                            }
-                                            const moodConfig = getMoodConfig(record.moodId);
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    className={`aspect-square rounded-full flex items-center justify-center relative group cursor-pointer ${moodConfig.style.replace('bg-', 'bg-').replace('text-', 'text-')}`}
-                                                >
-                                                    {record.isToday && <div className="absolute inset-0 border-2 border-ink-gray rounded-full opacity-20"></div>}
-                                                    <span className="text-sm">{moodConfig.icon}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Recent Highlights List */}
-                                <div className="space-y-4 mb-6">
-                                    <h4 className="font-bold text-ink-gray text-lg flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-dopamine-blue" />
-                                        最近状态
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {recentRecords.map((record, idx) => {
-                                            const mood = getMoodConfig(record.moodId);
-                                            return (
-                                                <div key={idx} className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 shrink-0 ${mood.style}`}>
-                                                        {mood.icon}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="font-bold text-ink-gray text-sm">{mood.label}</span>
-                                                            <span className="text-xs text-ink-light font-mono">{record.date}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-ink-light">关联:</span>
-                                                            <span className="text-xs font-bold text-ink-gray bg-gray-100 px-2 py-0.5 rounded-md">
-                                                                {record.context}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Insight Card */}
-                                <div className="bg-gradient-to-r from-dopamine-purple/10 to-dopamine-blue/10 p-5 rounded-2xl flex items-start gap-3">
-                                    <Sparkles className="w-5 h-5 text-dopamine-purple shrink-0 mt-0.5" />
-                                    <div>
-                                        <h5 className="font-bold text-dopamine-purple text-sm mb-1">小屿的观察</h5>
-                                        <p className="text-xs text-ink-gray leading-relaxed opacity-80">
-                                            最近虽然有一些波动，但整体状态在慢慢变好呢。
-                                            不管是开心还是低落，小屿都陪着你。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            // --- VIEW 2: MY ECHOES (User Content) ---
-                            <div className="animate-fade-in space-y-4 pb-8">
-                                <div className="flex items-center gap-2 mb-2 px-2 opacity-60">
-                                    <Feather className="w-4 h-4 text-ink-gray" />
-                                    <span className="text-xs font-bold text-ink-gray">我的心情想法</span>
-                                </div>
-
-                                {MY_SUBMISSIONS_MOCK.map((echo) => {
-                                    const moodConfig = getMoodConfig(echo.mood);
-                                    return (
-                                        <div key={echo.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-                                            {/* Decorative Quote Mark */}
-                                            <Quote className="absolute top-4 left-4 w-6 h-6 text-gray-100 fill-current -z-0" />
-
-                                            <div className="relative z-10">
-                                                <p className="font-serif text-ink-gray text-[15px] leading-7 text-justify mb-4 opacity-90">
-                                                    {echo.content}
-                                                </p>
-
-                                                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${moodConfig.style}`}>
-                                                            {moodConfig.icon}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[10px] font-bold text-ink-light/70">{echo.date}</span>
-                                                            <span className="text-[9px] text-ink-light/50">{echo.time}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1.5 bg-dopamine-pink/5 px-2.5 py-1 rounded-full border border-dopamine-pink/10">
-                                                        <MessageCircleHeart className="w-3.5 h-3.5 text-dopamine-pink" />
-                                                        <span className="text-xs font-bold text-dopamine-pink">{echo.hugs}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                <div className="text-center py-6 opacity-40">
-                                    <p className="text-[10px] text-ink-light font-serif">你的每一次分享，都点亮了某人的夜</p>
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-                </>
-            )}
-
-            {/* Fragrance Detail Modal - Redesigned with scent theme */}
-            {showFragranceDetail && selectedScentId && (
+    if (activeScent) {
+        return (
+            <div className="absolute inset-0 z-50 overflow-hidden bg-[#fdfbfd] text-[#1e293b] font-sans">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,#f3e8ff_0%,#fdfbfd_70%)] opacity-90" />
                 <div
-                    className="fixed inset-0 z-[80] cursor-default"
-                    onMouseDown={(e) => e.stopPropagation()}
-                >
-                    <div
-                        className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in"
-                        onClick={() => setShowFragranceDetail(false)}
-                    />
-                    <div
-                        className="absolute bottom-0 left-0 right-0 bg-surface-white/95 backdrop-blur-2xl rounded-t-[3rem] shadow-[0_-30px_80px_rgba(0,0,0,0.1)] pt-8 transform animate-slide-up transition-transform duration-300 border-t border-white/60 h-[85vh] flex flex-col"
-                        style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, ${getScentTheme(selectedScentId).bgOverlay || 'rgba(247,245,242,0.95)'} 100%)` }}
-                    >
-                        <div className="flex justify-center mb-2 shrink-0">
-                            <div className="w-12 h-1.5 bg-gray-200 rounded-full opacity-50"></div>
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]"
+                    style={{ backgroundColor: activeVisual.glow }}
+                />
+
+                <main className="relative z-10 mx-auto flex h-full w-full max-w-[480px] flex-col px-6">
+                    <section className="flex items-start justify-between gap-5 py-8 animate-fade-in-up">
+                        <div className="max-w-[76%]">
+                            <div className="flex items-baseline gap-2">
+                                <h1 className="text-xl font-medium tracking-[-0.03em] text-slate-800">
+                                    {activeScent.name}
+                                </h1>
+                                <span className="text-[11px] font-light uppercase tracking-[0.18em] text-slate-500">
+                                    {activeVisual.englishName}
+                                </span>
+                            </div>
+
+                            <div className="mt-4 max-w-[18rem] space-y-3 text-[22px] font-light italic leading-[1.55] tracking-[-0.03em] text-slate-500 sm:max-w-[20rem] sm:text-[24px]">
+                                {focusCopyLines.map((line, index) => (
+                                    <p key={`${activeScent.id}-focus-line-${index}`}>{line}</p>
+                                ))}
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-2">
+                                {ingredientTags.map((ingredient) => (
+                                    <span
+                                        key={`${activeScent.id}-ingredient-${ingredient}`}
+                                        className="rounded-full border border-white/70 bg-white/50 px-3 py-1.5 text-[11px] font-medium tracking-[0.08em] text-slate-500 backdrop-blur-xl"
+                                    >
+                                        {ingredient}
+                                    </span>
+                                ))}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={openStorySheet}
+                                className="mt-6 flex w-fit items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-600 transition hover:text-slate-900"
+                            >
+                                <MessageCircleMore className="h-4 w-4" strokeWidth={1.6} />
+                                <span>制香师说</span>
+                            </button>
                         </div>
 
-                        {/* Redesigned View: 制香师说 + 安心说明 */}
-                        <div className="animate-fade-in flex flex-col h-full overflow-hidden relative">
-                            <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-24">
-                                {/* Section 1: 制香师说 (First, main content) */}
-                                <div
-                                    className="p-6 rounded-[2rem] mb-6"
-                                    style={{
-                                        background: `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 8%, rgba(255,255,255,0.6)) 100%)`,
-                                        borderColor: `color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 15%, transparent)`,
-                                        borderWidth: '1px',
-                                        borderStyle: 'solid'
-                                    }}
+                        <button
+                            type="button"
+                            aria-label="关闭播放页"
+                            onClick={handleClosePlayer}
+                            className="rounded-full border border-slate-900/10 bg-slate-900/5 p-2 text-slate-800 transition hover:bg-slate-900/10 active:scale-95"
+                        >
+                            <X className="h-5 w-5" strokeWidth={1.6} />
+                        </button>
+                    </section>
+
+                    <section className="flex flex-1 items-end pb-6">
+                        <div className="w-full">
+                            <div className="flex justify-center px-1">
+                                <span className="text-[28px] font-extralight leading-none tracking-[-0.06em] text-slate-600 tabular-nums">
+                                    {timeParts.minutes}
+                                    {timeParts.seconds}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="pb-10">
+                        <div className="mx-auto flex max-w-xs items-center justify-between rounded-full border border-white/60 bg-white/40 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-2xl">
+                            <button
+                                type="button"
+                                aria-label={isMuted ? '取消静音' : '静音'}
+                                onClick={onMuteToggle}
+                                className="p-3 text-slate-500 transition hover:text-slate-800 active:scale-95"
+                            >
+                                {isMuted ? <VolumeX className="h-6 w-6" strokeWidth={1.5} /> : <Volume2 className="h-6 w-6" strokeWidth={1.5} />}
+                            </button>
+
+                            <button
+                                type="button"
+                                aria-label={playerIsPlaying ? '暂停播放' : '继续播放'}
+                                onClick={onPlaybackToggle}
+                                className="flex h-14 w-14 items-center justify-center rounded-full border border-[#e8d0ff] bg-[#f8f0ff] text-[#4d2a73] shadow-[0_4px_12px_rgba(200,160,240,0.2)] transition hover:scale-105 active:scale-95"
+                            >
+                                {playerIsPlaying ? <Pause className="h-7 w-7 fill-current" strokeWidth={1.4} /> : <Play className="h-7 w-7 fill-current" strokeWidth={1.4} />}
+                            </button>
+
+                            <button
+                                type="button"
+                                aria-label="设置燃香时间"
+                                onClick={() => {
+                                    setPendingDurationMinutes(durationMinutes);
+                                    setShowTimerSettings(true);
+                                }}
+                                className="p-3 text-slate-500 transition hover:text-slate-800 active:scale-95"
+                            >
+                                <Timer className="h-6 w-6" strokeWidth={1.5} />
+                            </button>
+                        </div>
+                    </section>
+                </main>
+
+                {showTimerSettings && (
+                    <div className="absolute inset-0 z-30 flex items-end bg-[#fbf3f4]/50 backdrop-blur-[8px]" onClick={() => setShowTimerSettings(false)}>
+                        <div
+                            data-sheet-panel="timer-settings"
+                            className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/98 px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
+                            <h2 className="text-center text-xl font-medium text-slate-800">想让这段声音陪你多久？</h2>
+                            <p className="mt-2 text-center text-sm text-slate-500">这里只调整声音陪伴的时长，不影响你手中的香。</p>
+
+                            <div className="mx-auto mt-6 grid max-w-sm grid-cols-2 gap-3">
+                                {TIMER_OPTIONS.map((minutes) => (
+                                    <button
+                                        key={minutes}
+                                        type="button"
+                                        aria-label={`${minutes} 分钟`}
+                                        onClick={() => setPendingDurationMinutes(minutes)}
+                                        className={`rounded-2xl border px-4 py-4 text-sm font-medium transition active:scale-95 ${
+                                            pendingDurationMinutes === minutes
+                                                ? 'border-[#c8a0f0] bg-[#f8f0ff] text-[#4d2a73]'
+                                                : 'border-white/70 bg-white/55 text-slate-600 hover:bg-white'
+                                        }`}
+                                    >
+                                        {minutes} 分钟
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="mx-auto mt-6 flex max-w-sm gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTimerSettings(false)}
+                                    className="flex-1 rounded-full bg-white/60 px-5 py-3 text-sm font-medium text-slate-500 transition hover:bg-white active:scale-95"
                                 >
-                                    <div className="flex flex-col items-center mb-5">
-                                        <Quote
-                                            className="w-8 h-8 mb-2 fill-current"
-                                            style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.4 }}
-                                        />
-                                        <h3 className="text-lg font-serif font-bold text-ink-gray">{TEXT_CONTENT.product.modal[selectedScentId]?.story?.title || TEXT_CONTENT.product.modal.tinghe.story.title}</h3>
-                                        <p
-                                            className="text-xs tracking-widest mt-1 uppercase"
-                                            style={{ color: getScentTheme(selectedScentId).textColor, opacity: 0.7 }}
+                                    取消
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmDuration}
+                                    className="flex-1 rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-lg shadow-slate-900/10 transition hover:bg-slate-800 active:scale-95"
+                                >
+                                    确认
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showStory && (
+                    <div
+                        data-sheet-overlay="story"
+                        className={`absolute inset-0 z-30 flex items-end backdrop-blur-[10px] ${
+                            isStoryClosing
+                                ? 'bg-[#f8f1f2]/0 opacity-0 transition-opacity duration-200 ease-out'
+                                : 'bg-[#f8f1f2]/76 opacity-100 animate-fade-in'
+                        }`}
+                        onClick={closeStorySheet}
+                    >
+                        <div
+                            data-sheet-panel="story"
+                            data-state={isStoryClosing ? 'closing' : 'open'}
+                            className={`no-scrollbar max-h-[80vh] w-full overflow-y-auto rounded-t-[2rem] border border-white/80 bg-[#fffaf7]/98 px-6 pb-10 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl ${
+                                isStoryClosing
+                                    ? 'translate-y-6 opacity-0 transition-all duration-200 ease-out'
+                                    : 'translate-y-0 opacity-100 animate-fade-in-up'
+                            }`}
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
+                            <div className="mx-auto max-w-md">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{activeVisual.englishName}</p>
+                                        <h2 className="mt-2 text-2xl font-medium text-slate-800">{storySheetTitle}</h2>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        aria-label="关闭制香师说"
+                                        onClick={closeStorySheet}
+                                        className="rounded-full bg-slate-900/5 p-2 text-slate-700"
+                                    >
+                                        <X className="h-5 w-5" strokeWidth={1.6} />
+                                    </button>
+                                </div>
+
+                                <div className="mt-6 space-y-6">
+                                    <section>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 气味印象 ]</p>
+                                        <div className="mt-3 text-[15px] leading-8 text-slate-600">
+                                            <p className="text-[18px] font-light italic leading-8 tracking-[-0.03em] text-slate-500">{activeVisual.quote}</p>
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 用了什么原材 ]</p>
+                                        <div className="mt-3 grid gap-3">
+                                            {storyIngredientList.map((item) => (
+                                                <div
+                                                    key={`${activeScent.id}-story-ingredient-${item.name}`}
+                                                    className="rounded-[1.35rem] border border-white/75 bg-white/72 px-4 py-3 shadow-[0_10px_28px_rgba(255,255,255,0.16)]"
+                                                >
+                                                    <p className="text-sm font-medium text-slate-700">{item.name}</p>
+                                                    {item.desc ? <p className="mt-1 text-sm text-slate-500">{item.desc}</p> : null}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 为什么这样调 ]</p>
+                                        <div data-story-section="reason" className="mt-3 space-y-3 text-[15px] leading-7 tracking-[-0.03em] text-slate-600">
+                                            {storyContent.map((paragraph, index) => (
+                                                <p key={`${activeScent.id}-story-${index}`}>{paragraph}</p>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 适合什么时候点 ]</p>
+                                        <div data-story-section="occasion" className="mt-3 space-y-2 text-[15px] leading-7 tracking-[-0.03em] text-slate-600">
+                                            {storyOccasionLead ? <p>{storyOccasionLead}</p> : null}
+                                            <p>{storyOccasionBody}</p>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showMoodRecorder && (
+                    <div
+                        data-sheet-overlay="mood-record"
+                        className="absolute inset-0 z-40 flex items-end bg-[#fbf3f4]/70 backdrop-blur-[10px] animate-fade-in"
+                        onClick={handleSkipMoodRecord}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="记录此刻心情"
+                            data-sheet-panel="mood-record"
+                            data-step={moodRecordStep}
+                            className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/96 px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl animate-fade-in-up"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
+
+                            {moodRecordStep === 'mood' && (
+                                <div className="mx-auto max-w-md">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">MOMENT CHECK</p>
+                                            <h2 className="mt-2 text-2xl font-medium text-slate-800">你现在感受如何？</h2>
+                                            <p className="mt-2 text-sm leading-6 text-slate-500">现在的你，更接近哪一种？</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            aria-label="先不记"
+                                            onClick={handleSkipMoodRecord}
+                                            className="rounded-full bg-slate-900/5 p-2 text-slate-700 transition hover:bg-slate-900/10 active:scale-95"
                                         >
-                                            {TEXT_CONTENT.product.modal[selectedScentId]?.story?.subtitle || TEXT_CONTENT.product.modal.tinghe.story.subtitle}
-                                        </p>
+                                            <X className="h-5 w-5" strokeWidth={1.6} />
+                                        </button>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        {(TEXT_CONTENT.product.modal[selectedScentId]?.story?.content || TEXT_CONTENT.product.modal.tinghe.story.content).map((paragraph, idx) => (
-                                            <p key={idx} className="font-serif text-ink-gray leading-relaxed text-justify text-sm opacity-90">
-                                                {paragraph}
-                                            </p>
+                                    <div
+                                        aria-label="心情气泡"
+                                        className="relative mx-auto mt-6 h-[17rem] max-w-[330px] overflow-visible"
+                                    >
+                                        {MOOD_RECORD_OPTIONS.map((mood) => (
+                                            <button
+                                                key={mood.id}
+                                                type="button"
+                                                aria-label={mood.label}
+                                                onClick={() => handleMoodSelect(mood.id)}
+                                                className={`group absolute flex flex-col items-center gap-2 text-slate-500 outline-none transition duration-500 active:scale-95 ${mood.positionClassName}`}
+                                            >
+                                                <span
+                                                    className={`block rounded-full border border-white/60 blur-[1px] shadow-xl transition duration-500 group-hover:scale-110 group-hover:blur-0 ${mood.orbClassName}`}
+                                                />
+                                                <span className={`relative z-10 text-sm font-medium tracking-[0.04em] text-slate-600 drop-shadow-[0_2px_10px_rgba(255,255,255,0.96)] transition group-hover:text-slate-800 ${mood.labelClassName ?? ''}`}>
+                                                    {mood.label}
+                                                </span>
+                                            </button>
                                         ))}
                                     </div>
 
-                                    <div className="mt-6 flex justify-center">
-                                        <div
-                                            className="w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm"
-                                            style={{
-                                                backgroundColor: 'white',
-                                                borderColor: `color-mix(in srgb, ${getScentTheme(selectedScentId).textColor} 20%, transparent)`,
-                                                borderWidth: '1px',
-                                                borderStyle: 'solid'
-                                            }}
-                                        >👩‍🎨</div>
+                                    <button
+                                        type="button"
+                                        onClick={handleSkipMoodRecord}
+                                        className="mx-auto mt-2 block rounded-full bg-white/55 px-5 py-3 text-sm font-medium text-slate-500 transition hover:bg-white active:scale-95"
+                                    >
+                                        先不记
+                                    </button>
+                                </div>
+                            )}
+
+                            {moodRecordStep === 'context' && selectedMood && (
+                                <div className="mx-auto max-w-md">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMoodRecordStep('mood')}
+                                        className="mb-5 text-xs font-medium uppercase tracking-[0.16em] text-slate-400 transition hover:text-slate-700"
+                                    >
+                                        返回
+                                    </button>
+
+                                    <h2 className="mt-6 text-2xl font-medium text-slate-800">这份感觉和什么有关？</h2>
+
+                                    <div className="mt-5 flex flex-wrap gap-2.5">
+                                        {MOOD_CONTEXT_OPTIONS.map((context) => (
+                                            <button
+                                                key={context.id}
+                                                type="button"
+                                                onClick={() => handleContextSelect(context.id)}
+                                                className="inline-flex items-center rounded-full border border-white/70 bg-white/58 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:border-[#d99b91]/40 hover:bg-white hover:text-[#7a4038] active:scale-95"
+                                            >
+                                                {context.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleSkipMoodContext}
+                                        className="mt-7 rounded-full bg-white/58 px-5 py-3 text-sm font-medium text-slate-500 transition hover:bg-white active:scale-95"
+                                    >
+                                        跳过
+                                    </button>
+                                </div>
+                            )}
+
+                            {moodRecordStep === 'saved' && (
+                                <div className="mx-auto max-w-md py-10 text-center">
+                                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/80 bg-[#f4ddd8] text-[#7a4038] shadow-[0_18px_48px_rgba(217,155,145,0.22)]">
+                                            <Check className="h-7 w-7" strokeWidth={1.8} />
+                                        </div>
+                                    <h2 className="text-2xl font-medium text-slate-800">已经记录</h2>
+                                    <p className="mt-3 text-sm leading-6 text-slate-500">这次记录已存在本地浏览器里。</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="no-scrollbar absolute inset-0 z-50 overflow-y-auto bg-[#f5f0f7] text-[#1d1b20] font-sans">
+            <div className="pointer-events-none fixed inset-0 overflow-hidden">
+                <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#dfeeea]/70 blur-[90px]" />
+                <div className="absolute -right-24 top-40 h-80 w-80 rounded-full bg-[#ffe8c8]/70 blur-[100px]" />
+                <div className="absolute bottom-[-9rem] left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#e9ddff]/55 blur-[120px]" />
+            </div>
+
+            <header className="sticky top-0 z-20 flex items-center justify-between px-5 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
+                <img
+                    src={BRAND_LOGO_SRC}
+                    alt="小屿和品牌 Logo"
+                    className="h-auto w-[10.4rem] object-contain opacity-80 sm:w-[10.9rem]"
+                />
+                <button
+                    type="button"
+                    aria-label="查看这一周的心绪"
+                    onClick={openWeeklyMoodSheet}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
+                >
+                    <CalendarDays className="h-4 w-4" strokeWidth={1.7} />
+                    <span>一周心绪</span>
+                </button>
+            </header>
+
+            <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-60px)] w-full max-w-[480px] flex-col px-5 pb-5 sm:min-h-[calc(100dvh-72px)] sm:px-6 sm:pb-8">
+                <section className="shrink-0 pb-4 pt-2 sm:pb-6 sm:pt-4">
+                    <h1 className="max-w-[9ch] text-[36px] font-semibold leading-[0.98] tracking-[-0.07em] text-[#201d24] sm:max-w-[11ch] sm:text-[42px] sm:leading-[1.05] sm:tracking-[-0.06em]">
+                        找到你手里的那支香
+                    </h1>
+                    <p className="mt-3 max-w-[16rem] text-[14px] leading-6 text-[#655f6c]/78 sm:mt-4 sm:max-w-[18rem] sm:text-[15px] sm:leading-7">
+                        每一支香，都有一段可打开的气味故事。
+                    </p>
+                </section>
+
+                <section aria-label="香味选择" className="flex min-h-0 flex-1 flex-col gap-3 pb-2 sm:gap-4">
+                    {FRAGRANCE_LIST.map((scent) => {
+                        const visual = SCENT_VISUALS[scent.id] ?? FALLBACK_VISUAL;
+                        const isLocked = scent.status === 'locked';
+
+                        return (
+                            <button
+                                key={scent.id}
+                                type="button"
+                                disabled={isLocked}
+                                aria-label={isLocked ? `${scent.name}暂未开放` : `打开${scent.name}`}
+                                onClick={() => {
+                                    if (!isLocked) {
+                                        handleOpenScent(scent.id);
+                                    }
+                                }}
+                                className={`
+                                    group relative flex min-h-[142px] flex-1 flex-col justify-between overflow-hidden rounded-[1.45rem] border border-white/70
+                                    bg-[#fdf7ff]/72 p-4 text-left shadow-[0_18px_55px_rgba(58,50,65,0.07)]
+                                    backdrop-blur-2xl transition duration-500 ease-out
+                                    sm:min-h-[156px] sm:rounded-[1.65rem] sm:p-5
+                                    hover:-translate-y-1 hover:bg-white/86 hover:shadow-[0_24px_70px_rgba(58,50,65,0.12)]
+                                    active:translate-y-0 active:scale-[0.985]
+                                    disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0
+                                `}
+                            >
+                                <div
+                                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[52px] transition-opacity duration-500 group-hover:opacity-95 sm:-right-12 sm:-top-12 sm:h-36 sm:w-36 sm:blur-[58px]"
+                                    style={{ backgroundColor: visual.glow }}
+                                />
+
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#766f7d]/70 sm:text-[11px] sm:tracking-[0.22em]">
+                                        <span>{visual.number}</span>
+                                        <span>{visual.englishName}</span>
+                                    </div>
+                                    <h2 className="mt-1.5 text-[24px] font-semibold leading-none tracking-[-0.04em] text-[#201d24] sm:mt-2 sm:text-[28px]">
+                                        {scent.name}
+                                    </h2>
+                                </div>
+
+                                <div className="relative z-10 mt-3 flex h-7 items-center sm:mt-4 sm:h-8">
+                                    <div
+                                        className="relative h-[10px] w-full overflow-hidden rounded-full shadow-[0_8px_18px_rgba(255,255,255,0.28)] sm:h-3"
+                                        style={{ background: visual.gradient }}
+                                    >
+                                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.16),rgba(255,255,255,0.62),rgba(255,255,255,0.18))] opacity-75 transition duration-700 group-hover:translate-x-2" />
                                     </div>
                                 </div>
 
-                                {/* Section 2: 安心说明 (Second, smaller) */}
-                                <div className="bg-white/60 backdrop-blur-sm p-5 rounded-2xl border border-white/40">
-                                    <h4
-                                        className="font-bold text-sm text-ink-gray mb-3 flex items-center gap-2"
-                                        style={{ color: getScentTheme(selectedScentId).textColor }}
-                                    >
-                                        <Leaf className="w-4 h-4" />
-                                        {TEXT_CONTENT.product.common.title}
-                                    </h4>
-                                    <p className="font-medium text-xs text-ink-gray leading-relaxed text-justify opacity-80">
-                                        {TEXT_CONTENT.product.common.origin.part1} <b
-                                            style={{ color: getScentTheme(selectedScentId).textColor }}
-                                            className="px-1 rounded"
-                                        >{TEXT_CONTENT.product.common.origin.highlight}</b> {TEXT_CONTENT.product.common.origin.part2}
+                                <div className="relative z-10 mt-3 flex items-end justify-between gap-3 sm:mt-4">
+                                    <p className="text-[14px] leading-[1.45] text-[#5d5663]/76 sm:text-[15px] sm:leading-6">
+                                        {visual.quote || scent.desc}
+                                    </p>
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/58 text-[#665f6c] transition group-hover:bg-white group-hover:text-[#201d24] sm:h-9 sm:w-9">
+                                        <Play className="h-[14px] w-[14px] fill-current sm:h-4 sm:w-4" strokeWidth={1.8} />
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </section>
+            </main>
+
+            {showWeeklyMood && (
+                <div
+                    data-sheet-overlay="weekly-mood"
+                    className="fixed inset-0 z-40 flex items-end bg-[#fbf3f4]/68 backdrop-blur-[10px] animate-fade-in"
+                    onClick={closeWeeklyMoodSheet}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="这一周的心绪"
+                        data-sheet-panel="weekly-mood"
+                        className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/96 px-6 pb-7 pt-5 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl animate-fade-in-up"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
+
+                        <div className="mx-auto max-w-md">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">MOMENT TRACE</p>
+                                    <h2 className="mt-2 text-2xl font-medium text-slate-800">这一周的心绪</h2>
+                                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                                        最近 7 天，记录了 {weeklyRecordCount} 次。
                                     </p>
                                 </div>
-
-                                {/* Safety Warning */}
-                                <p className="text-[10px] text-center text-ink-light font-medium tracking-wide opacity-40 mt-6">
-                                    {TEXT_CONTENT.product.common.footer}
-                                </p>
+                                <button
+                                    type="button"
+                                    aria-label="关闭这一周的心绪"
+                                    onClick={closeWeeklyMoodSheet}
+                                    className="rounded-full bg-slate-900/5 p-2 text-slate-700 transition hover:bg-slate-900/10 active:scale-95"
+                                >
+                                    <X className="h-5 w-5" strokeWidth={1.6} />
+                                </button>
                             </div>
 
-                            {/* Close Handle */}
-                            <div
-                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-6 flex justify-center cursor-pointer z-10"
-                                onClick={() => setShowFragranceDetail(false)}
-                            >
-                                <div className="flex flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-                                    <ChevronUp className="w-5 h-5 text-ink-gray" />
-                                    <span className="text-[10px] text-ink-light tracking-widest uppercase">收起</span>
-                                </div>
+                            <div className="mt-6 grid grid-cols-7 gap-2">
+                                {weekSummaries.map((day) => {
+                                    const latestRecord = day.records[0] ?? null;
+                                    const moodVisual = getMoodVisual(latestRecord?.moodId ?? '');
+                                    const isSelected = selectedWeekDay?.key === day.key;
+
+                                    return (
+                                        <button
+                                            key={day.key}
+                                            type="button"
+                                            aria-label={`${day.dayLabel} 周${day.weekday}${day.records.length ? `，${day.records.length} 次记录` : '，暂无记录'}`}
+                                            onClick={() => setSelectedWeekDayKey(day.key)}
+                                            className={`flex flex-col items-center gap-2 rounded-[1.2rem] px-1.5 py-2 text-center transition active:scale-95 ${
+                                                isSelected ? 'bg-white/68 shadow-[0_12px_32px_rgba(94,69,72,0.08)]' : 'hover:bg-white/40'
+                                            }`}
+                                        >
+                                            <span className="text-[11px] font-medium text-slate-400">周{day.weekday}</span>
+                                            <span
+                                                className={`flex h-8 w-8 items-center justify-center rounded-full border transition ${
+                                                    isSelected ? 'border-white bg-white shadow-[0_8px_20px_rgba(94,69,72,0.12)]' : 'border-white/70 bg-white/42'
+                                                }`}
+                                                style={{
+                                                    boxShadow: latestRecord ? `0 0 22px ${moodVisual.glow}` : undefined,
+                                                }}
+                                            >
+                                                <span
+                                                    className={`block rounded-full ${latestRecord ? 'h-4 w-4' : 'h-2 w-2 border border-dashed border-slate-300'}`}
+                                                    style={{ backgroundColor: latestRecord ? moodVisual.dot : 'transparent' }}
+                                                />
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">{day.dayLabel}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-6 rounded-[1.6rem] border border-white/75 bg-white/58 p-4 shadow-[0_18px_54px_rgba(94,69,72,0.08)]">
+                                {selectedWeekDay && selectedWeekRecord && selectedWeekRecordVisual ? (
+                                    <div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                                {selectedWeekDay.dayLabel} · 周{selectedWeekDay.weekday}
+                                            </p>
+                                            <span className="rounded-full bg-white/65 px-3 py-1 text-[11px] font-medium text-slate-400">
+                                                {selectedWeekRecords.length} 次
+                                            </span>
+                                        </div>
+
+                                        <article
+                                            className="mt-4 rounded-[1.25rem] border border-white/75 p-4"
+                                            style={{ backgroundColor: selectedWeekRecordVisual.wash }}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <p className="text-[12px] font-medium text-slate-400">最后一条</p>
+                                                <p className="text-[12px] text-slate-400">{selectedWeekRecordTime}</p>
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-2 gap-2">
+                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                    <p className="text-[11px] text-slate-400">点了什么香</p>
+                                                    <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.scentName}</p>
+                                                </div>
+                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                    <p className="text-[11px] text-slate-400">点了多久</p>
+                                                    <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.durationMinutes} 分钟</p>
+                                                </div>
+                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                    <p className="text-[11px] text-slate-400">心情如何</p>
+                                                    <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.mood}</p>
+                                                </div>
+                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                    <p className="text-[11px] text-slate-400">和什么有关</p>
+                                                    <p className="mt-1 text-sm font-medium text-slate-700">
+                                                        {selectedWeekRecord.related?.length > 0 ? selectedWeekRecord.related.join('、') : '未选择'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </div>
+                                ) : (
+                                    <div className="py-6 text-center">
+                                        <p className="text-lg font-medium text-slate-700">这一天还没有记录。</p>
+                                        <p className="mt-2 text-sm leading-6 text-slate-500">等一支香结束后，这里会留下一个小点。</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             )}
-
-            {/* Gift Setup Modal */}
-            <GiftSetupModal
-                isOpen={showGiftModal}
-                onClose={() => setShowGiftModal(false)}
-            />
-
-            {/* Auth Modal */}
-            <AuthModal
-                isOpen={showAuthModal}
-                onClose={() => setShowAuthModal(false)}
-            />
         </div>
     );
 };

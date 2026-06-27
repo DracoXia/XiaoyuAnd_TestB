@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Dashboard from './Dashboard';
 
-// Mock the constants module
 vi.mock('../constants', () => ({
   MOOD_OPTIONS: [
-    { id: 'calm', label: '想静静', icon: '🌤️', style: 'bg-moss-green/50 text-moss-green-dark' },
-    { id: 'anxious', label: '有点焦虑', icon: '🌧️', style: 'bg-dopamine-purple/10 text-dopamine-purple' }
+    { id: 'quiet', label: '安静', icon: '·', style: 'bg-moss-green/50 text-moss-green-dark' },
   ],
-  CONTEXT_OPTIONS: ['工作/学业', '感情'],
+  CONTEXT_OPTIONS: ['工作'],
   FRAGRANCE_LIST: [
     {
       id: 'tinghe',
@@ -18,250 +16,398 @@ vi.mock('../constants', () => ({
       status: 'owned',
       color: 'bg-lotus-pink text-lotus-pink-dark',
       gradient: 'from-lotus-pink/30 to-earth-sand/50',
-      audioUrl: 'test.mp3',
+      audioUrl: 'tinghe.mp3',
       fullName: '小屿和·香 听荷',
       vibe: '澄澈：独处的静谧时刻',
-      story: '荷塘清晨，露珠在碧绿的荷叶间轻轻滚动。远处的鸟鸣穿透薄雾飘来，在清旷的留白里，此间独坐，听荷声，见清静。',
+      story: '荷塘清晨，露珠在碧绿的荷叶间轻轻滚动。',
       ingredients: ['九品香水莲', '斑斓叶'],
-      colorCode: '莲粉'
+      colorCode: '莲粉',
     },
     {
       id: 'wanxiang',
       name: '晚巷',
-      desc: '和温柔在一起',
+      desc: '暮色浸染的木质微光',
       status: 'owned',
       color: 'bg-osmanthus-gold text-osmanthus-gold-dark',
       gradient: 'from-osmanthus-gold/30 to-earth-clay/40',
-      audioUrl: '',
+      audioUrl: 'wanxiang.mp3',
       fullName: '小屿和·香 晚巷',
       vibe: '安抚：卸下防备的温暖归途',
       story: '老巷深处，秋雨过后，夕阳在青石板上染了一层金。',
       ingredients: ['桂花', '苏合香'],
-      colorCode: '桂金'
-    }
+      colorCode: '桂金',
+    },
+    {
+      id: 'xiaoyuan',
+      name: '小院',
+      desc: '青苔漫过石阶的呼吸',
+      status: 'owned',
+      color: 'bg-moss-green text-moss-green-dark',
+      gradient: 'from-moss-green/30 to-earth-sage/50',
+      audioUrl: 'xiaoyuan.mp3',
+      fullName: '小屿和·香 小院',
+      vibe: '呼吸：都市中的自然野趣',
+      story: '山间小院，苔藓在石阶上静静生长。',
+      ingredients: ['苔藓', '薄荷油'],
+      colorCode: '苔绿',
+    },
   ],
   TEXT_CONTENT: {
     product: {
-      entryLabel: "关于这支香",
+      entryLabel: '关于这支香',
       common: {
-        title: "安心入座的理由",
-        origin: { title: "test", part1: 'test', highlight: 'test', part2: 'test', part3: 'test' },
-        reminder: { title: "test", text: 'test' },
-        footer: 'test'
+        title: '安心入座的理由',
+        origin: { part1: '', highlight: '', part2: '' },
+        footer: '',
       },
       modal: {
         tinghe: {
-          ingredients: { title: 'test', list: [] },
-          story: { title: 'test', subtitle: 'test', content: [] }
+          story: {
+            content: [
+              '长明岛有一片荷塘，清晨时分最是动人。',
+              '薄雾还在水面萦绕，露珠已在荷叶上悄悄滚动。',
+            ],
+          },
         },
         wanxiang: {
-          ingredients: { title: 'test', list: [] },
-          story: { title: 'test', subtitle: 'test', content: [] }
+          story: {
+            content: [
+              '老巷深处，秋雨过后，夕阳在青石板上染了一层金。',
+              '那甜美的气息从某户人家飘出来，让人不由得停下脚步。',
+            ],
+          },
         },
         xiaoyuan: {
-          ingredients: { title: 'test', list: [] },
-          story: { title: 'test', subtitle: 'test', content: [] }
-        }
-      }
-    }
+          story: {
+            content: [
+              '山间小院，苔藓在石阶上静静生长。',
+              '薄荷与迷迭香随风摇曳，草叶沙沙。',
+            ],
+          },
+        },
+      },
+    },
   },
-  DASHBOARD_DATA: { scenarios: [], lifestyle: { title: '', subtitle: '', tag: '', action: '', slogan: '', categories: [] } }
+  DASHBOARD_DATA: { scenarios: [], lifestyle: { title: '', subtitle: '', tag: '', action: '', slogan: '', categories: [] } },
 }));
 
-describe('Dashboard - 香型卡片展开功能', () => {
+describe('Dashboard - v0.3 香味首页', () => {
   const mockOnScenarioClick = vi.fn();
+  const mockOnPlaybackToggle = vi.fn();
+  const mockOnMuteToggle = vi.fn();
+  const mockOnClosePlayer = vi.fn();
+  const mockOnTimerComplete = vi.fn();
+  let localStorageStore: Record<string, string>;
 
   beforeEach(() => {
+    localStorageStore = {};
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn((key: string) => localStorageStore[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => {
+          localStorageStore[key] = value;
+        }),
+        removeItem: vi.fn((key: string) => {
+          delete localStorageStore[key];
+        }),
+        clear: vi.fn(() => {
+          localStorageStore = {};
+        }),
+      },
+      configurable: true,
+    });
     mockOnScenarioClick.mockClear();
+    mockOnPlaybackToggle.mockClear();
+    mockOnMuteToggle.mockClear();
+    mockOnClosePlayer.mockClear();
+    mockOnTimerComplete.mockClear();
   });
 
-  describe('初始渲染', () => {
-    it('应该渲染所有香型卡片（收起状态）', () => {
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it('renders the v0.3 first-screen copy, weekly entry, and scent cards', () => {
+    const { container } = render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
 
-      // 应该显示香型名称
-      expect(screen.getByText('听荷')).toBeInTheDocument();
-      expect(screen.getByText('晚巷')).toBeInTheDocument();
-    });
+    const brandLogo = screen.getByAltText('小屿和品牌 Logo');
+    expect(brandLogo).toBeInTheDocument();
+    expect(brandLogo).toHaveAttribute('src', '/xiaoyuhe-logo.png');
+    expect(brandLogo.className).toContain('w-[10.4rem]');
+    expect(screen.queryByText('小屿和 · 香')).not.toBeInTheDocument();
+    expect(screen.getByText('找到你手里的那支香')).toBeInTheDocument();
+    expect(screen.getByText('每一支香，都有一段可打开的气味故事。')).toBeInTheDocument();
 
-    it('应该显示标题和副标题', () => {
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    expect(screen.getByRole('button', { name: /打开听荷/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /打开晚巷/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /打开小院/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '查看这一周的心绪' })).toBeInTheDocument();
 
-      expect(screen.getByText('确认今日香型')).toBeInTheDocument();
-      expect(screen.getByText('轻触确认，开启此刻的疗愈')).toBeInTheDocument();
-    });
+    expect(screen.queryByText('确认今日香型')).not.toBeInTheDocument();
+    expect(screen.queryByText('轻触确认，开启此刻的疗愈')).not.toBeInTheDocument();
+    expect(screen.queryByText('点一支')).not.toBeInTheDocument();
+    expect(screen.queryByText('心情足迹')).not.toBeInTheDocument();
+
+    const tingheCard = screen.getByRole('button', { name: /打开听荷/ });
+    const gradientBand = tingheCard.querySelector('div[style*="linear-gradient"]');
+    expect(gradientBand?.getAttribute('style')).toContain('rgb(244, 225, 220)');
+    expect(gradientBand?.querySelector('[class*="bg-white/45"]')).toBeNull();
+    expect(container.textContent).not.toContain('“');
+    expect(container.textContent).not.toContain('”');
+    expect(container.innerHTML).toContain('rgba(226, 156, 146, 0.32)');
+    expect(container.firstElementChild).toHaveClass('no-scrollbar');
   });
 
-  describe('展开/收起交互', () => {
-    it('点击未展开的香型卡片应该展开该卡片', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it('starts the scent experience immediately when a scent card is clicked', async () => {
+    const user = userEvent.setup();
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
 
-      // 找到听荷卡片并点击
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
+    await user.click(screen.getByRole('button', { name: /打开听荷/ }));
 
-      // 展开后应该显示故事描述
-      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
-    });
-
-    it('点击已展开的香型卡片应该收起该卡片', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
-
-      // 展开卡片
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
-
-      // 验证已展开
-      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
-
-      // 再次点击收起
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
-
-      // 故事描述应该消失
-      expect(screen.queryByText(/荷塘清晨/)).not.toBeInTheDocument();
-    });
-
-    it('展开一个卡片时，其他卡片应该自动收起', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
-
-      // 首先展开听荷
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
-
-      // 听荷应该展开
-      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
-
-      // 然后展开晚巷 - 听荷应该自动收起
-      const wanxiangCard = screen.getByText('晚巷').closest('div[class*="cursor-pointer"]');
-      if (wanxiangCard) {
-        await user.click(wanxiangCard);
-      }
-
-      // 听荷的故事应该消失（收起了）
-      expect(screen.queryByText(/荷塘清晨/)).not.toBeInTheDocument();
-      // 晚巷的故事应该出现
-      expect(screen.getByText(/老巷深处/)).toBeInTheDocument();
-    });
-
-    it('已拥有的香型卡片应该可以展开', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
-
-      // 晚巷现在是 owned 状态 - 可以点击展开
-      const wanxiangCard = screen.getByText('晚巷').closest('div[class*="cursor-pointer"]');
-      if (wanxiangCard) {
-        await user.click(wanxiangCard);
-      }
-
-      // 展开后应该显示故事
-      expect(screen.getByText(/老巷深处/)).toBeInTheDocument();
-    });
+    expect(mockOnScenarioClick).toHaveBeenCalledTimes(1);
+    expect(mockOnScenarioClick).toHaveBeenCalledWith('tinghe');
+    expect(screen.getByText('15:00')).toBeInTheDocument();
+    expect(screen.queryByText('还剩')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '暂停播放' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '设置燃香时间' })).toBeInTheDocument();
   });
 
-  describe('展开状态的内容', () => {
-    it('展开后应该显示故事描述 (story)', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it('renders the expanded player with focus copy and ingredient tags instead of the old timer ring', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <Dashboard
+        onScenarioClick={mockOnScenarioClick}
+        activeScentId="tinghe"
+        isPlaying
+        isMuted={false}
+        onPlaybackToggle={mockOnPlaybackToggle}
+        onMuteToggle={mockOnMuteToggle}
+        onClosePlayer={mockOnClosePlayer}
+      />
+    );
 
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
+    expect(screen.getByText('听荷')).toBeInTheDocument();
+    expect(screen.getByText('Listening to Lotus')).toBeInTheDocument();
+    expect(screen.getByText('制香师说')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭播放页' })).toBeInTheDocument();
+    expect(container.querySelector('.lucide-message-circle-more')).not.toBeNull();
+    expect(screen.getByText((content) => content.includes('长明岛有一片荷塘，清晨时分最是动人。'))).toBeInTheDocument();
+    expect(screen.getByText('九品香水莲')).toBeInTheDocument();
+    expect(screen.getByText('斑斓叶')).toBeInTheDocument();
+    expect(screen.queryByText('正在打开这支香')).not.toBeInTheDocument();
+    expect(container.querySelector('svg[viewBox="0 0 100 100"]')).toBeNull();
+    expect(container.textContent).not.toContain('“');
+    expect(container.textContent).not.toContain('”');
 
-      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
-    });
+    await user.click(screen.getByText('制香师说'));
 
-    it('展开后应该显示"点一支"按钮', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    const storyPanel = container.querySelector('[data-sheet-panel="story"][data-state="open"]');
+    expect(storyPanel).not.toBeNull();
+    expect(storyPanel).toHaveClass('no-scrollbar');
+    expect(screen.getByText('和清净在一起')).toBeInTheDocument();
+    expect(screen.queryByText('听荷的制香师说')).not.toBeInTheDocument();
+    expect(screen.queryByText('和清静在一起')).not.toBeInTheDocument();
+    expect(screen.getByText('[ 气味印象 ]')).toBeInTheDocument();
+    expect(screen.getByText('[ 用了什么原材 ]')).toBeInTheDocument();
+    expect(screen.getByText('[ 为什么这样调 ]')).toBeInTheDocument();
+    expect(screen.getByText('[ 适合什么时候点 ]')).toBeInTheDocument();
+    expect(screen.getByText('独处的静谧时刻')).toBeInTheDocument();
+    const reasonSection = container.querySelector('[data-story-section="reason"]');
+    const occasionSection = container.querySelector('[data-story-section="occasion"]');
+    expect(reasonSection?.className).toContain('leading-7');
+    expect(reasonSection?.className).toContain('tracking-[-0.03em]');
+    expect(occasionSection?.className).toContain('leading-7');
+    expect(occasionSection?.className).toContain('tracking-[-0.03em]');
 
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
-
-      // 应该显示点一支按钮
-      const igniteButtons = screen.getAllByText(/点一支/);
-      expect(igniteButtons.length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: '关闭制香师说' }));
+    await waitFor(() => {
+      expect(container.querySelector('[data-sheet-panel="story"]')).toBeNull();
     });
   });
 
-  describe('展开卡片内的故事描述和按钮', () => {
-    it('展开后应该显示完整的故事描述', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it.each([
+    ['wanxiang', '和温柔在一起'],
+    ['xiaoyuan', '和自在在一起'],
+  ])('uses a unified atmosphere title for %s story sheet', async (scentId, expectedTitle) => {
+    const user = userEvent.setup();
+    render(
+      <Dashboard
+        onScenarioClick={mockOnScenarioClick}
+        activeScentId={scentId}
+        isPlaying
+        isMuted={false}
+        onPlaybackToggle={mockOnPlaybackToggle}
+        onMuteToggle={mockOnMuteToggle}
+        onClosePlayer={mockOnClosePlayer}
+      />
+    );
 
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
+    await user.click(screen.getByText('制香师说'));
 
-      // 应该显示故事描述
-      expect(screen.getByText(/荷塘清晨/)).toBeInTheDocument();
-      expect(screen.getByText(/露珠在碧绿的荷叶间/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(expectedTitle)).toBeInTheDocument();
+    expect(screen.queryByText(/的制香师说/)).not.toBeInTheDocument();
+  });
 
-    it('展开后应该显示"点一支"按钮在卡片内', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it('allows the incense duration to be changed from settings', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
 
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
+    await user.click(screen.getByRole('button', { name: /打开听荷/ }));
+    await user.click(screen.getByRole('button', { name: '设置燃香时间' }));
+    const timerSettingsPanel = container.querySelector('[data-sheet-panel="timer-settings"]');
+    expect(timerSettingsPanel).not.toBeNull();
+    expect(timerSettingsPanel?.className).toContain('bg-[#fffaf8]/98');
+    expect(screen.getByText('想让这段声音陪你多久？')).toBeInTheDocument();
+    expect(screen.getByText('这里只调整声音陪伴的时长，不影响你手中的香。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '20 分钟' }));
+    await user.click(screen.getByRole('button', { name: '确认' }));
 
-      // 应该在展开的卡片内显示点一支按钮
-      const igniteButtons = screen.getAllByText(/点一支/);
-      expect(igniteButtons.length).toBeGreaterThan(0);
-    });
+    expect(screen.getByText('20:00')).toBeInTheDocument();
+    expect(screen.queryByText('想让这段声音陪你多久？')).not.toBeInTheDocument();
+  });
 
-    it('点击卡片内的"点一支"按钮应该调用 onScenarioClick', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+  it('records the finished scent mood with related contexts in local storage', async () => {
+    vi.useFakeTimers();
 
-      // 展开卡片
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
-
-      // 找到卡片内的点一支按钮
-      const igniteButtons = screen.getAllByRole('button').filter(btn =>
-        btn.textContent?.includes('点一支')
+    try {
+      render(
+        <Dashboard
+          onScenarioClick={mockOnScenarioClick}
+          activeScentId="tinghe"
+          isPlaying
+          isMuted={false}
+          onPlaybackToggle={mockOnPlaybackToggle}
+          onMuteToggle={mockOnMuteToggle}
+          onClosePlayer={mockOnClosePlayer}
+          onTimerComplete={mockOnTimerComplete}
+          initialRemainingSeconds={1}
+        />
       );
 
-      // 点击第一个点一支按钮（卡片内的）
-      if (igniteButtons.length > 0) {
-        await user.click(igniteButtons[0]);
-      }
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
 
-      expect(mockOnScenarioClick).toHaveBeenCalledWith('tinghe');
-    });
+      expect(mockOnTimerComplete).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('你现在感受如何？')).toBeInTheDocument();
+      expect(screen.getByText('现在的你，更接近哪一种？')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '平静' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '满足' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '轻松' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '疲惫' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '焦虑' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '低落' })).toBeInTheDocument();
+      expect(screen.getByLabelText('心情气泡')).toHaveClass('overflow-visible');
+      expect(screen.getByLabelText('心情气泡')).not.toHaveClass('overflow-auto');
 
-    it('展开后应该显示 Info 按钮（查看香方）', async () => {
-      const user = userEvent.setup();
-      render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+      fireEvent.click(screen.getByRole('button', { name: '平静' }));
 
-      const tingheCard = screen.getByText('听荷').closest('div[class*="cursor-pointer"]');
-      if (tingheCard) {
-        await user.click(tingheCard);
-      }
+      expect(screen.getByText('这份感觉和什么有关？')).toBeInTheDocument();
+      expect(screen.queryByText((content) => content.includes('最多选 3 个。'))).not.toBeInTheDocument();
 
-      // 应该显示 Info 按钮（点击查看香方详情）
-      const buttons = screen.getAllByRole('button');
-      const infoButton = buttons.find(btn => btn.querySelector('svg.lucide-info'));
-      expect(infoButton).toBeInTheDocument();
-    });
+      expect(screen.getByRole('button', { name: '跳过' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '记下这一刻' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '工作' }));
+
+      const storedRecords = JSON.parse(window.localStorage.getItem('xiaoyu_scent_mood_records_v1') ?? '[]');
+      expect(storedRecords).toHaveLength(1);
+      expect(storedRecords[0]).toMatchObject({
+        version: 1,
+        scentId: 'tinghe',
+        scentName: '听荷',
+        durationMinutes: 15,
+        durationSeconds: 900,
+        moodId: 'calm',
+        mood: '平静',
+        related: ['工作'],
+      });
+      expect(screen.getByText('已经记录')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '好，先这样' })).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1500);
+      });
+
+      expect(screen.queryByLabelText('记录此刻心情')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('can open directly into the related-context step for local preview and keep the timer paused', () => {
+    render(
+      <Dashboard
+        onScenarioClick={mockOnScenarioClick}
+        activeScentId="tinghe"
+        isPlaying={false}
+        isMuted={false}
+        onPlaybackToggle={mockOnPlaybackToggle}
+        onMuteToggle={mockOnMuteToggle}
+        onClosePlayer={mockOnClosePlayer}
+        previewMoodRecordStep="context"
+        previewMoodRecordMoodId="anxious"
+      />
+    );
+
+    expect(screen.getByText('这份感觉和什么有关？')).toBeInTheDocument();
+    expect(screen.queryByText('你选了 焦虑')).not.toBeInTheDocument();
+    expect(screen.queryByText('脑子和心都还有点悬着。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '记下这一刻' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '跳过' })).toBeInTheDocument();
+    expect(screen.getByText('15:00')).toBeInTheDocument();
+    expect(mockOnTimerComplete).not.toHaveBeenCalled();
+  });
+
+  it('opens the weekly mood sheet with the latest local record details only', () => {
+    const latestRecordDate = new Date();
+    const earlierRecordDate = new Date(latestRecordDate.getTime() - 60 * 60 * 1000);
+
+    localStorageStore.xiaoyu_scent_mood_records_v1 = JSON.stringify([
+      {
+        version: 1,
+        id: 'record-latest',
+        createdAt: latestRecordDate.toISOString(),
+        scentId: 'wanxiang',
+        scentName: '晚巷',
+        durationMinutes: 10,
+        durationSeconds: 600,
+        moodId: 'calm',
+        mood: '平静',
+        related: ['房间'],
+      },
+      {
+        version: 1,
+        id: 'record-earlier',
+        createdAt: earlierRecordDate.toISOString(),
+        scentId: 'tinghe',
+        scentName: '听荷',
+        durationMinutes: 15,
+        durationSeconds: 900,
+        moodId: 'anxious',
+        mood: '焦虑',
+        related: ['工作'],
+      },
+    ]);
+
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '查看这一周的心绪' }));
+
+    const sheet = screen.getByRole('dialog', { name: '这一周的心绪' });
+    expect(within(sheet).getByText('这一周的心绪')).toBeInTheDocument();
+    expect(within(sheet).getByText('最近 7 天，记录了 2 次。')).toBeInTheDocument();
+    expect(within(sheet).getByText('最后一条')).toBeInTheDocument();
+    expect(within(sheet).getByText('2 次')).toBeInTheDocument();
+    expect(within(sheet).getByText('点了什么香')).toBeInTheDocument();
+    expect(within(sheet).getByText('晚巷')).toBeInTheDocument();
+    expect(within(sheet).getByText('点了多久')).toBeInTheDocument();
+    expect(within(sheet).getByText('10 分钟')).toBeInTheDocument();
+    expect(within(sheet).getByText('心情如何')).toBeInTheDocument();
+    expect(within(sheet).getByText('平静')).toBeInTheDocument();
+    expect(within(sheet).getByText('和什么有关')).toBeInTheDocument();
+    expect(within(sheet).getByText('房间')).toBeInTheDocument();
+    expect(within(sheet).queryByText('听荷')).not.toBeInTheDocument();
+    expect(within(sheet).queryByText('15 分钟')).not.toBeInTheDocument();
+    expect(within(sheet).queryByText('焦虑')).not.toBeInTheDocument();
+    expect(within(sheet).queryByText('工作')).not.toBeInTheDocument();
+    expect(within(sheet).queryByText(/推荐|建议|分析/)).not.toBeInTheDocument();
   });
 });
