@@ -902,14 +902,24 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     return (
-        <div className="no-scrollbar absolute inset-0 z-50 overflow-y-auto bg-[#f5f0f7] text-[#1d1b20] font-sans">
+        <div
+            className="no-scrollbar absolute inset-0 z-50 overflow-y-auto bg-[#f5f0f7] text-[#1d1b20] font-sans"
+            style={{
+                paddingLeft: 'env(safe-area-inset-left, 0px)',
+                paddingRight: 'env(safe-area-inset-right, 0px)',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            }}
+        >
             <div className="pointer-events-none fixed inset-0 overflow-hidden">
                 <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#dfeeea]/70 blur-[90px]" />
                 <div className="absolute -right-24 top-40 h-80 w-80 rounded-full bg-[#ffe8c8]/70 blur-[100px]" />
                 <div className="absolute bottom-[-9rem] left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#e9ddff]/55 blur-[120px]" />
             </div>
 
-            <header className="sticky top-0 z-20 flex items-center justify-between px-5 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
+            <header
+                className="sticky top-0 z-20 flex items-center justify-between px-5 pb-4 pt-4 backdrop-blur-xl sm:px-6 sm:pb-5 sm:pt-5"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+            >
                 <img
                     src={BRAND_LOGO_SRC}
                     alt="小屿和品牌 Logo"
@@ -963,7 +973,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 `}
                             >
                                 <div
-                                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[52px] transition-opacity duration-500 group-hover:opacity-95 sm:-right-12 sm:-top-12 sm:h-36 sm:w-36 sm:blur-[58px]"
+                                    className="pointer-events-none absolute right-3 top-3 h-24 w-24 opacity-82 rounded-full blur-[48px] transition-opacity duration-500 group-hover:opacity-95 sm:right-4 sm:top-4 sm:h-32 sm:w-32 sm:blur-[56px]"
                                     style={{ backgroundColor: visual.glow }}
                                 />
 

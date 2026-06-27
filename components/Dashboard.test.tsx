@@ -131,6 +131,8 @@ describe('Dashboard - v0.3 香味首页', () => {
     expect(brandLogo).toHaveAttribute('src', '/xiaoyuhe-logo.png');
     expect(brandLogo.className).toContain('w-[10.4rem]');
     expect(screen.queryByText('小屿和 · 香')).not.toBeInTheDocument();
+    const header = container.querySelector('header');
+    expect(header?.getAttribute('style')).toContain('padding-top: calc(');
     expect(screen.getByText('找到你手里的那支香')).toBeInTheDocument();
     expect(screen.getByText('每一支香，都有一段可打开的气味故事。')).toBeInTheDocument();
 
@@ -145,9 +147,12 @@ describe('Dashboard - v0.3 香味首页', () => {
     expect(screen.queryByText('心情足迹')).not.toBeInTheDocument();
 
     const tingheCard = screen.getByRole('button', { name: /打开听荷/ });
+    const tingheGlow = tingheCard.querySelector('div[style*=\"rgba(226, 156, 146, 0.32)\"]');
     const gradientBand = tingheCard.querySelector('div[style*="linear-gradient"]');
     expect(gradientBand?.getAttribute('style')).toContain('rgb(244, 225, 220)');
     expect(gradientBand?.querySelector('[class*="bg-white/45"]')).toBeNull();
+    expect(tingheGlow?.className).toContain('right-3');
+    expect(tingheGlow?.className).not.toContain('-right-10');
     expect(container.textContent).not.toContain('“');
     expect(container.textContent).not.toContain('”');
     expect(container.innerHTML).toContain('rgba(226, 156, 146, 0.32)');
