@@ -133,6 +133,27 @@ xiaoyuAnd/
     - 新增 `audio_mode_change` 事件类型
     - `startSession()` 支持 `audioMode` 参数
 
+### v2.5.0 (Xiaoyuhe Launch Experience Polish)
+*   [UI] **首页首屏重构收口**:
+    - 主标题更新为 `听，香的味道`
+    - 副文案更新为 `一支香，一段往事。`
+    - 品牌 logo 与标题左边界统一对齐，移动端标题保持单行
+*   [UX] **播放页低干扰优化**:
+    - 移除独立静音按钮，只保留播放 / 暂停与时间设置
+    - 关闭播放页时音频渐隐停止，避免声音直接截断
+    - `制香师说` 入口放大，增强故事入口可见性
+*   [Content] **香型信息更新**:
+    - `听荷` 气味短句改为 `雨后初晴的清冽与草木回甘`
+    - `晚巷` 英文名改为 `Evening Alley`
+    - `小院` 英文名改为 `Small Yard`
+    - 三款香的完整原材只在播放页标签展示，`制香师说` 内页不再重复原材段
+*   [Responsive] **iPhone 14-17 视觉 QA**:
+    - 验证 `390x844`、`393x852`、`402x874`、`420x912`、`428x926`、`430x932`、`440x956` 代表视口
+    - 标题均保持单行，logo 与标题左边界误差为 `0px`
+*   [Test] **验证通过**:
+    - `npm.cmd run test:run -- components/Dashboard.test.tsx App.test.tsx`
+    - `npm.cmd run build`
+
 ### v2.4.1 (NFC Unified Entry)
 *   [Refactor] **NFC 架构简化**:
     - 统一入口：从 `/api/nfc/{fragranceId}` 改为 `/api/nfc`

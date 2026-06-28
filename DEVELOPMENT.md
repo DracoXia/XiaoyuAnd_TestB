@@ -429,6 +429,26 @@ GROUP BY audio_mode;
     - `analyticsService.ts`: 新增 `updateAudioMode()` 方法
 *   [Docs] **PRD 指标支持**: 现在可以追踪 Audio Completion Rate
 
+### v2.5.0 (Xiaoyuhe Launch Experience Polish)
+*   [UI] **首页首屏重构收口**:
+    - 主标题更新为 `听，香的味道`
+    - 副文案更新为 `一支香，一段往事。`
+    - Header 与正文共用 `max-w-[480px]` 居中容器，保证品牌 logo 与标题左边界对齐
+*   [UX] **播放页低干扰优化**:
+    - 移除独立静音按钮，避免与暂停功能重复
+    - 播放页关闭时主音频渐隐停止
+    - `制香师说` 入口字号和 icon 放大，提升可发现性
+*   [Content] **香型信息更新**:
+    - 听荷短句从 `雨后初晴的清冽与苦涩` 改为 `雨后初晴的清冽与草木回甘`
+    - 英文辅助名更新为 `Evening Alley` / `Small Yard`
+    - 三款香完整原材改为播放页标签展示，故事浮层不再重复原材段
+*   [Responsive] **iPhone 14-17 视觉 QA**:
+    - 覆盖 `390x844`、`393x852`、`402x874`、`420x912`、`428x926`、`430x932`、`440x956` 代表视口
+    - 标题保持单行，logo 与标题左边界误差为 `0px`
+*   [Test] **验证通过**:
+    - `npm.cmd run test:run -- components/Dashboard.test.tsx App.test.tsx`
+    - `npm.cmd run build`
+
 ### v2.4.1 (NFC Unified Entry)
 *   [Refactor] **NFC 架构简化**:
     - 统一入口：从 `/api/nfc/{fragranceId}` 改为 `/api/nfc`

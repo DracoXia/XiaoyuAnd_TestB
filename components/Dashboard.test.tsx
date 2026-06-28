@@ -20,7 +20,7 @@ vi.mock('../constants', () => ({
       fullName: '小屿和·香 听荷',
       vibe: '澄澈：独处的静谧时刻',
       story: '荷塘清晨，露珠在碧绿的荷叶间轻轻滚动。',
-      ingredients: ['九品香水莲', '斑斓叶'],
+      ingredients: ['九品香水莲', '鸡蛋花', '斑斓叶', '安息香', '桧木', '檀香', '沉香'],
       colorCode: '莲粉',
     },
     {
@@ -34,7 +34,7 @@ vi.mock('../constants', () => ({
       fullName: '小屿和·香 晚巷',
       vibe: '安抚：卸下防备的温暖归途',
       story: '老巷深处，秋雨过后，夕阳在青石板上染了一层金。',
-      ingredients: ['桂花', '苏合香'],
+      ingredients: ['桂花', '丁香', '龙脑香', '苏合香', '桧木', '檀香', '沉香'],
       colorCode: '桂金',
     },
     {
@@ -48,7 +48,7 @@ vi.mock('../constants', () => ({
       fullName: '小屿和·香 小院',
       vibe: '呼吸：都市中的自然野趣',
       story: '山间小院，苔藓在石阶上静静生长。',
-      ingredients: ['苔藓', '薄荷油'],
+      ingredients: ['白色鼠尾草', '柠檬', '香茅草', '薄荷', '葡萄柚', '广藿香', '岩兰草', '龙脑香', '尤加利', '苔藓', '百里香'],
       colorCode: '苔绿',
     },
   ],
@@ -94,7 +94,6 @@ vi.mock('../constants', () => ({
 describe('Dashboard - v0.3 香味首页', () => {
   const mockOnScenarioClick = vi.fn();
   const mockOnPlaybackToggle = vi.fn();
-  const mockOnMuteToggle = vi.fn();
   const mockOnClosePlayer = vi.fn();
   const mockOnTimerComplete = vi.fn();
   let localStorageStore: Record<string, string>;
@@ -118,7 +117,6 @@ describe('Dashboard - v0.3 香味首页', () => {
     });
     mockOnScenarioClick.mockClear();
     mockOnPlaybackToggle.mockClear();
-    mockOnMuteToggle.mockClear();
     mockOnClosePlayer.mockClear();
     mockOnTimerComplete.mockClear();
   });
@@ -130,16 +128,24 @@ describe('Dashboard - v0.3 香味首页', () => {
     expect(brandLogo).toBeInTheDocument();
     expect(brandLogo).toHaveAttribute('src', '/xiaoyuhe-logo.png');
     expect(brandLogo.className).toContain('w-[10.4rem]');
+    expect(brandLogo.className).not.toContain('-ml-1');
     expect(screen.queryByText('小屿和 · 香')).not.toBeInTheDocument();
     const header = container.querySelector('header');
     expect(header?.getAttribute('style')).toContain('padding-top: calc(');
-    expect(screen.getByText('找到你手里的那支香')).toBeInTheDocument();
-    expect(screen.getByText('每一支香，都有一段可打开的气味故事。')).toBeInTheDocument();
+    expect(header?.querySelector('div')?.className).toContain('max-w-[480px]');
+    const heroTitle = screen.getByText('听，香的味道');
+    expect(heroTitle).toBeInTheDocument();
+    expect(heroTitle.className).toContain('whitespace-nowrap');
+    expect(screen.getByText('一支香，一段往事。')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: /打开听荷/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /打开晚巷/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /打开小院/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '查看这一周的心绪' })).toBeInTheDocument();
+    expect(screen.getByText('Evening Alley')).toBeInTheDocument();
+    expect(screen.getByText('Small Yard')).toBeInTheDocument();
+    expect(screen.getByText('雨后初晴的清冽与草木回甘')).toBeInTheDocument();
+    expect(screen.queryByText(/苦涩/)).not.toBeInTheDocument();
 
     expect(screen.queryByText('确认今日香型')).not.toBeInTheDocument();
     expect(screen.queryByText('轻触确认，开启此刻的疗愈')).not.toBeInTheDocument();
@@ -180,9 +186,7 @@ describe('Dashboard - v0.3 香味首页', () => {
         onScenarioClick={mockOnScenarioClick}
         activeScentId="tinghe"
         isPlaying
-        isMuted={false}
         onPlaybackToggle={mockOnPlaybackToggle}
-        onMuteToggle={mockOnMuteToggle}
         onClosePlayer={mockOnClosePlayer}
       />
     );
@@ -192,9 +196,17 @@ describe('Dashboard - v0.3 香味首页', () => {
     expect(screen.getByText('制香师说')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '关闭播放页' })).toBeInTheDocument();
     expect(container.querySelector('.lucide-message-circle-more')).not.toBeNull();
+    expect(screen.getByText('制香师说').closest('button')?.className).toContain('text-[15px]');
     expect(screen.getByText((content) => content.includes('长明岛有一片荷塘，清晨时分最是动人。'))).toBeInTheDocument();
     expect(screen.getByText('九品香水莲')).toBeInTheDocument();
+    expect(screen.getByText('鸡蛋花')).toBeInTheDocument();
     expect(screen.getByText('斑斓叶')).toBeInTheDocument();
+    expect(screen.getByText('安息香')).toBeInTheDocument();
+    expect(screen.getByText('桧木')).toBeInTheDocument();
+    expect(screen.getByText('檀香')).toBeInTheDocument();
+    expect(screen.getByText('沉香')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '静音' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '取消静音' })).not.toBeInTheDocument();
     expect(screen.queryByText('正在打开这支香')).not.toBeInTheDocument();
     expect(container.querySelector('svg[viewBox="0 0 100 100"]')).toBeNull();
     expect(container.textContent).not.toContain('“');
@@ -209,7 +221,7 @@ describe('Dashboard - v0.3 香味首页', () => {
     expect(screen.queryByText('听荷的制香师说')).not.toBeInTheDocument();
     expect(screen.queryByText('和清静在一起')).not.toBeInTheDocument();
     expect(screen.getByText('[ 气味印象 ]')).toBeInTheDocument();
-    expect(screen.getByText('[ 用了什么原材 ]')).toBeInTheDocument();
+    expect(screen.queryByText('[ 用了什么原材 ]')).not.toBeInTheDocument();
     expect(screen.getByText('[ 为什么这样调 ]')).toBeInTheDocument();
     expect(screen.getByText('[ 适合什么时候点 ]')).toBeInTheDocument();
     expect(screen.getByText('独处的静谧时刻')).toBeInTheDocument();
@@ -236,9 +248,7 @@ describe('Dashboard - v0.3 香味首页', () => {
         onScenarioClick={mockOnScenarioClick}
         activeScentId={scentId}
         isPlaying
-        isMuted={false}
         onPlaybackToggle={mockOnPlaybackToggle}
-        onMuteToggle={mockOnMuteToggle}
         onClosePlayer={mockOnClosePlayer}
       />
     );
@@ -277,9 +287,7 @@ describe('Dashboard - v0.3 香味首页', () => {
           onScenarioClick={mockOnScenarioClick}
           activeScentId="tinghe"
           isPlaying
-          isMuted={false}
           onPlaybackToggle={mockOnPlaybackToggle}
-          onMuteToggle={mockOnMuteToggle}
           onClosePlayer={mockOnClosePlayer}
           onTimerComplete={mockOnTimerComplete}
           initialRemainingSeconds={1}
@@ -343,9 +351,7 @@ describe('Dashboard - v0.3 香味首页', () => {
         onScenarioClick={mockOnScenarioClick}
         activeScentId="tinghe"
         isPlaying={false}
-        isMuted={false}
         onPlaybackToggle={mockOnPlaybackToggle}
-        onMuteToggle={mockOnMuteToggle}
         onClosePlayer={mockOnClosePlayer}
         previewMoodRecordStep="context"
         previewMoodRecordMoodId="anxious"

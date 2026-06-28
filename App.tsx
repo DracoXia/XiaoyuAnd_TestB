@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon, Music } from 'lucide-react';
+import { X, Leaf, Loader2, AlertCircle, ChevronRight, Send, Check, Users, ArrowLeft, ArrowRight, Heart, Sparkles, Quote, Sun, CloudRain, Wind, MessageCircleHeart, AlignLeft, Feather, Plus, Zap, BookOpen, Menu, ThumbsUp, MessageCircle, HeartHandshake, Moon, Music } from 'lucide-react';
 import { AppPhase } from './types';
 import { TEXT_CONTENT, DEFAULT_AUDIO_URL, TRANSITION_AUDIO_URL, IMMERSION_DURATION, MOOD_OPTIONS, CONTEXT_OPTIONS, AMBIANCE_MODES, FRAGRANCE_LIST, MOCK_ECHOES_BY_MOOD, PINK_NOISE_URL, BROWN_NOISE_URL } from './constants';
 import DynamicBackground from './components/DynamicBackground';
@@ -79,7 +79,6 @@ const App: React.FC = () => {
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState(false);
     const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
 
     // Fragrance & Ambiance State
     // Default to the first owned fragrance
@@ -211,7 +210,6 @@ const App: React.FC = () => {
         setShowRitualLayer(false);
         setFadeRitual(false);
         setVolumeSafely(1);
-        setIsMuted(false);
         setIsPlaying(false);
     }, [dashboardMoodPreview]);
 
@@ -578,22 +576,6 @@ const App: React.FC = () => {
         if (newIsPlaying && volume < 0.1) setVolumeSafely(1);
     };
 
-    const toggleMute = () => {
-        const newIsMuted = !isMuted;
-
-        trackEvent({ eventType: 'audio_toggle', isPlaying: !newIsMuted, wasManuallyToggled: true });
-
-        const sessionId = getCurrentSessionId();
-        if (sessionId) {
-            const nextAudioMode: AudioMode = newIsMuted
-                ? 'silent'
-                : AMBIANCE_TO_AUDIO_MODE[activeAmbianceId] || 'natural';
-            updateAudioMode(sessionId, nextAudioMode);
-        }
-
-        setIsMuted(newIsMuted);
-    };
-
     const handleDashboardPlayerClose = () => {
         const sessionId = getCurrentSessionId();
         if (sessionId && sessionStartRef.current) {
@@ -608,9 +590,7 @@ const App: React.FC = () => {
         }
 
         setDashboardActiveScentId(null);
-        setIsMuted(false);
-
-        if (!isPlaying || isMuted || volumeRef.current <= 0.01) {
+        if (!isPlaying || volumeRef.current <= 0.01) {
             setIsDashboardAudioClosing(false);
             stopAudioPlayback();
             return;
@@ -636,7 +616,7 @@ const App: React.FC = () => {
             sessionStartRef.current = null;
         }
 
-        if (!isPlaying || isMuted || volumeRef.current <= 0.01) {
+        if (!isPlaying || volumeRef.current <= 0.01) {
             setIsDashboardAudioClosing(false);
             stopAudioPlayback();
             return;
@@ -701,7 +681,6 @@ const App: React.FC = () => {
 
         // Start audio with slow fade in: 8 seconds to reach 90% volume
         setVolumeSafely(0);
-        setIsMuted(false);
         setIsPlaying(true);
         fadeAudioVolume({
             to: 0.9,
@@ -872,22 +851,6 @@ const App: React.FC = () => {
                         <Plus className="w-5 h-5" strokeWidth={2} />
                     </button>
 
-                    {/* Divider */}
-                    <div className="w-px h-6 bg-gray-300 mx-1 opacity-50"></div>
-
-                    {/* Mute Toggle */}
-                    <button
-                        onClick={toggleAudio}
-                        className={`
-                            w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
-                            ${!isPlaying
-                                ? 'bg-red-50 text-red-400' // Muted state visual
-                                : 'text-ink-gray/60 hover:bg-white/40 hover:text-ink-gray'}
-                        `}
-                        title={isPlaying ? "静音" : "播放"}
-                    >
-                        {isPlaying ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                    </button>
                 </div>
             </div>
 
@@ -1077,7 +1040,7 @@ const App: React.FC = () => {
         isDashboardPlayerActive ||
         isDashboardAudioClosing
     );
-    const mainAudioVolume = isMuted ? 0 : (layer2AudioUrl ? volume * 0.65 : volume);
+    const mainAudioVolume = layer2AudioUrl ? volume * 0.65 : volume;
 
     return (
         <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-background-zen">
@@ -1091,13 +1054,13 @@ const App: React.FC = () => {
                 key="main-audio"
                 url={currentAudioUrl}
                 // Allow playing in RITUAL phase if explicitly triggered (for preloading)
-                // 当"我的"模式激活时，静音官方音频（iframe 播放用户歌单）
+                // 当"我的"模式激活时，不播放官方音频（iframe 播放用户歌单）
                 isPlaying={shouldPlayMainAudio}
                 volume={mainAudioVolume} // Reduce volume by 35% if Layer 2 is active
                 onLoadingStatusChange={setIsAudioLoading}
                 onError={() => setAudioError(true)}
             />
-            {/* LAYER 2: Functional Noise Overlay - "我的"模式下也静音 */}
+            {/* LAYER 2: Functional Noise Overlay - "我的"模式下不播放 */}
             <AudioPlayer
                 url={layer2AudioUrl}
                 isPlaying={isPlaying && activeAmbianceId !== 'mine' && layer2AudioUrl !== "" && (phase === AppPhase.IMMERSION || phase === AppPhase.TREEHOLE)}
@@ -1153,9 +1116,7 @@ const App: React.FC = () => {
                     onScenarioClick={handleDashboardScenarioClick}
                     activeScentId={dashboardActiveScentId}
                     isPlaying={isPlaying}
-                    isMuted={isMuted}
                     onPlaybackToggle={() => toggleAudio()}
-                    onMuteToggle={toggleMute}
                     onClosePlayer={handleDashboardPlayerClose}
                     onTimerComplete={handleDashboardTimerComplete}
                     previewMoodRecordStep={activeDashboardMoodPreview?.step}
@@ -1172,7 +1133,7 @@ const App: React.FC = () => {
             />
 
             {/* 隐藏的内嵌音乐播放器 - 用于播放用户导入的歌单 */}
-            {/* 当静音时移除 iframe，取消静音时重新加载（自动播放） */}
+            {/* 仅在播放状态下挂载 iframe，避免暂停后继续出声 */}
             {userPlaylist &&
              activeAmbianceId === 'mine' &&
              phase === AppPhase.IMMERSION &&

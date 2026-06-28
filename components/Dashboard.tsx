@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Check, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, Volume2, VolumeX, X } from 'lucide-react';
+import { CalendarDays, Check, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, X } from 'lucide-react';
 import { FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
     activeScentId?: string | null;
     isPlaying?: boolean;
-    isMuted?: boolean;
     onPlaybackToggle?: () => void;
-    onMuteToggle?: () => void;
     onClosePlayer?: () => void;
     onTimerComplete?: () => void;
     initialRemainingSeconds?: number;
@@ -218,7 +216,7 @@ const getRecentWeekSummaries = (records: StoredMoodRecord[]): WeekDayMoodSummary
 const SCENT_VISUALS: Record<string, ScentVisual> = {
     tinghe: {
         englishName: 'Listening to Lotus',
-        quote: '雨后初晴的清冽与苦涩',
+        quote: '雨后初晴的清冽与草木回甘',
         number: '01',
         gradient: 'linear-gradient(135deg, #f4e1dc 0%, #e8bab1 100%)',
         glow: 'rgba(226, 156, 146, 0.32)',
@@ -226,7 +224,7 @@ const SCENT_VISUALS: Record<string, ScentVisual> = {
         Icon: CloudRain,
     },
     wanxiang: {
-        englishName: 'Evening Lane',
+        englishName: 'Evening Alley',
         quote: '暮色浸染的木质微光',
         number: '02',
         gradient: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
@@ -235,7 +233,7 @@ const SCENT_VISUALS: Record<string, ScentVisual> = {
         Icon: Moon,
     },
     xiaoyuan: {
-        englishName: 'Small Courtyard',
+        englishName: 'Small Yard',
         quote: '青苔漫过石阶的呼吸',
         number: '03',
         gradient: 'linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%)',
@@ -276,9 +274,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     onScenarioClick,
     activeScentId,
     isPlaying,
-    isMuted = false,
     onPlaybackToggle,
-    onMuteToggle,
     onClosePlayer,
     onTimerComplete,
     initialRemainingSeconds: initialRemainingSecondsProp,
@@ -307,7 +303,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     const activeScent = FRAGRANCE_LIST.find((scent) => scent.id === playerScentId) ?? null;
     const activeVisual = activeScent ? SCENT_VISUALS[activeScent.id] ?? FALLBACK_VISUAL : FALLBACK_VISUAL;
     const playerIsPlaying = isPlaying ?? Boolean(activeScent);
-    const activeModalContent = activeScent ? TEXT_CONTENT.product.modal[activeScent.id] : null;
     const storyContent = activeScent
         ? TEXT_CONTENT.product.modal[activeScent.id]?.story?.content ?? [activeScent.story || activeVisual.quote]
         : [];
@@ -317,12 +312,6 @@ const Dashboard: React.FC<DashboardProps> = ({
             ? activeScent.story.split('\n\n').filter(Boolean).slice(0, 2)
             : [activeVisual.quote];
     const ingredientTags = activeScent?.ingredients ?? [];
-    const storyIngredientList =
-        activeModalContent?.ingredients?.list ??
-        ingredientTags.map((ingredient) => ({
-            name: ingredient,
-            desc: '',
-        }));
     const storyOccasionLead =
         activeScent?.vibe && activeScent.vibe.includes('：')
             ? activeScent.vibe.split('：')[1]
@@ -589,9 +578,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                             <button
                                 type="button"
                                 onClick={openStorySheet}
-                                className="mt-6 flex w-fit items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-600 transition hover:text-slate-900"
+                                className="mt-6 flex w-fit items-center gap-2 text-[15px] font-medium uppercase tracking-[0.16em] text-slate-600 transition hover:text-slate-900"
                             >
-                                <MessageCircleMore className="h-4 w-4" strokeWidth={1.6} />
+                                <MessageCircleMore className="h-5 w-5" strokeWidth={1.6} />
                                 <span>制香师说</span>
                             </button>
                         </div>
@@ -618,16 +607,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </section>
 
                     <section className="pb-10">
-                        <div className="mx-auto flex max-w-xs items-center justify-between rounded-full border border-white/60 bg-white/40 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-2xl">
-                            <button
-                                type="button"
-                                aria-label={isMuted ? '取消静音' : '静音'}
-                                onClick={onMuteToggle}
-                                className="p-3 text-slate-500 transition hover:text-slate-800 active:scale-95"
-                            >
-                                {isMuted ? <VolumeX className="h-6 w-6" strokeWidth={1.5} /> : <Volume2 className="h-6 w-6" strokeWidth={1.5} />}
-                            </button>
-
+                        <div className="mx-auto flex max-w-[13.5rem] items-center justify-between rounded-full border border-white/60 bg-white/40 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-2xl">
                             <button
                                 type="button"
                                 aria-label={playerIsPlaying ? '暂停播放' : '继续播放'}
@@ -743,21 +723,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 气味印象 ]</p>
                                         <div className="mt-3 text-[15px] leading-8 text-slate-600">
                                             <p className="text-[18px] font-light italic leading-8 tracking-[-0.03em] text-slate-500">{activeVisual.quote}</p>
-                                        </div>
-                                    </section>
-
-                                    <section>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">[ 用了什么原材 ]</p>
-                                        <div className="mt-3 grid gap-3">
-                                            {storyIngredientList.map((item) => (
-                                                <div
-                                                    key={`${activeScent.id}-story-ingredient-${item.name}`}
-                                                    className="rounded-[1.35rem] border border-white/75 bg-white/72 px-4 py-3 shadow-[0_10px_28px_rgba(255,255,255,0.16)]"
-                                                >
-                                                    <p className="text-sm font-medium text-slate-700">{item.name}</p>
-                                                    {item.desc ? <p className="mt-1 text-sm text-slate-500">{item.desc}</p> : null}
-                                                </div>
-                                            ))}
                                         </div>
                                     </section>
 
@@ -917,32 +882,34 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             <header
-                className="sticky top-0 z-20 flex items-center justify-between px-5 pb-4 pt-4 backdrop-blur-xl sm:px-6 sm:pb-5 sm:pt-5"
+                className="sticky top-0 z-20 backdrop-blur-xl"
                 style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
             >
-                <img
-                    src={BRAND_LOGO_SRC}
-                    alt="小屿和品牌 Logo"
-                    className="h-auto w-[10.4rem] object-contain opacity-80 sm:w-[10.9rem]"
-                />
-                <button
-                    type="button"
-                    aria-label="查看这一周的心绪"
-                    onClick={openWeeklyMoodSheet}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
-                >
-                    <CalendarDays className="h-4 w-4" strokeWidth={1.7} />
-                    <span>一周心绪</span>
-                </button>
+                <div className="mx-auto flex w-full max-w-[480px] items-center justify-between px-5 pb-4 sm:px-6 sm:pb-5">
+                    <img
+                        src={BRAND_LOGO_SRC}
+                        alt="小屿和品牌 Logo"
+                        className="h-auto w-[10.4rem] object-contain opacity-80 sm:w-[10.9rem]"
+                    />
+                    <button
+                        type="button"
+                        aria-label="查看这一周的心绪"
+                        onClick={openWeeklyMoodSheet}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
+                    >
+                        <CalendarDays className="h-4 w-4" strokeWidth={1.7} />
+                        <span>一周心绪</span>
+                    </button>
+                </div>
             </header>
 
             <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-60px)] w-full max-w-[480px] flex-col px-5 pb-5 sm:min-h-[calc(100dvh-72px)] sm:px-6 sm:pb-8">
                 <section className="shrink-0 pb-4 pt-2 sm:pb-6 sm:pt-4">
-                    <h1 className="max-w-[9ch] text-[36px] font-semibold leading-[0.98] tracking-[-0.07em] text-[#201d24] sm:max-w-[11ch] sm:text-[42px] sm:leading-[1.05] sm:tracking-[-0.06em]">
-                        找到你手里的那支香
+                    <h1 className="whitespace-nowrap text-[32px] font-semibold leading-[1.02] tracking-[-0.07em] text-[#201d24] sm:text-[42px] sm:leading-[1.05] sm:tracking-[-0.06em]">
+                        听，香的味道
                     </h1>
-                    <p className="mt-3 max-w-[16rem] text-[14px] leading-6 text-[#655f6c]/78 sm:mt-4 sm:max-w-[18rem] sm:text-[15px] sm:leading-7">
-                        每一支香，都有一段可打开的气味故事。
+                    <p className="ml-1 mt-3 max-w-[16rem] text-[14px] leading-6 text-[#655f6c]/78 sm:ml-1.5 sm:mt-4 sm:max-w-[18rem] sm:text-[15px] sm:leading-7">
+                        一支香，一段往事。
                     </p>
                 </section>
 
