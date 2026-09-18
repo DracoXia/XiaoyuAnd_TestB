@@ -117,6 +117,7 @@ export async function getPlaylistFromUrl(url: string): Promise<PlaylistInfo> {
     case 'netease':
       return fetchNeteasePlaylist(parseResult.playlistId);
     case 'apple':
+      return fetchApplePlaylist(parseResult.playlistId);
     case 'gift':
       return fetchApplePlaylist(parseResult.playlistId);
     case 'xiaoyu':
@@ -141,6 +142,7 @@ export function getEmbeddedPlayerUrl(platform: MusicPlatform, playlistId: string
       return `https://music.163.com/outchain/player?type=0&id=${playlistId}&auto=1&height=430`;
 
     case 'apple':
+      return `https://embed.music.apple.com/us/playlist/pl.${playlistId}`;
     case 'gift':
       // 朋友的礼物 - 使用网易云歌单播放器
       // 礼物歌单实际来自网易云，使用 type=0 歌单模式

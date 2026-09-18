@@ -267,7 +267,7 @@ describe('Dashboard - v0.3 香味首页', () => {
     await user.click(screen.getByRole('button', { name: '设置燃香时间' }));
     const timerSettingsPanel = container.querySelector('[data-sheet-panel="timer-settings"]');
     expect(timerSettingsPanel).not.toBeNull();
-    expect(timerSettingsPanel?.className).toContain('bg-[#fffaf8]/98');
+    expect(timerSettingsPanel?.className).toContain('bg-[#fffaf8]');
     expect(screen.getByText('想让这段声音陪你多久？')).toBeInTheDocument();
     expect(screen.getByText('这里只调整声音陪伴的时长，不影响你手中的香。')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
@@ -318,27 +318,30 @@ describe('Dashboard - v0.3 香味首页', () => {
       expect(screen.getByRole('button', { name: '跳过' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: '记下这一刻' })).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: '工作' }));
+      fireEvent.click(screen.getByRole('button', { name: '工作量' }));
 
       const storedRecords = JSON.parse(window.localStorage.getItem('xiaoyu_scent_mood_records_v1') ?? '[]');
       expect(storedRecords).toHaveLength(1);
       expect(storedRecords[0]).toMatchObject({
-        version: 1,
+        version: 2,
+        source: 'timer',
         scentId: 'tinghe',
         scentName: '听荷',
         durationMinutes: 15,
-        durationSeconds: 900,
         moodId: 'calm',
         mood: '平静',
-        related: ['工作'],
+        contextId: 'workload',
+        contextLabel: '工作量',
       });
-      expect(screen.getByText('已经记录')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: '好，先这样' })).not.toBeInTheDocument();
+      expect(screen.getByText('这一刻被记下来了')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '收好' })).toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(1500);
       });
 
+      expect(screen.getByLabelText('记录此刻心情')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: '收好' }));
       expect(screen.queryByLabelText('记录此刻心情')).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -405,20 +408,71 @@ describe('Dashboard - v0.3 香味首页', () => {
     const sheet = screen.getByRole('dialog', { name: '这一周的心绪' });
     expect(within(sheet).getByText('这一周的心绪')).toBeInTheDocument();
     expect(within(sheet).getByText('最近 7 天，记录了 2 次。')).toBeInTheDocument();
-    expect(within(sheet).getByText('最后一条')).toBeInTheDocument();
+    const detail = within(sheet).getByText('最后一条').closest('article') as HTMLElement;
+    expect(detail).toBeInTheDocument();
     expect(within(sheet).getByText('2 次')).toBeInTheDocument();
-    expect(within(sheet).getByText('点了什么香')).toBeInTheDocument();
-    expect(within(sheet).getByText('晚巷')).toBeInTheDocument();
-    expect(within(sheet).getByText('点了多久')).toBeInTheDocument();
-    expect(within(sheet).getByText('10 分钟')).toBeInTheDocument();
-    expect(within(sheet).getByText('心情如何')).toBeInTheDocument();
-    expect(within(sheet).getByText('平静')).toBeInTheDocument();
-    expect(within(sheet).getByText('和什么有关')).toBeInTheDocument();
-    expect(within(sheet).getByText('房间')).toBeInTheDocument();
-    expect(within(sheet).queryByText('听荷')).not.toBeInTheDocument();
-    expect(within(sheet).queryByText('15 分钟')).not.toBeInTheDocument();
-    expect(within(sheet).queryByText('焦虑')).not.toBeInTheDocument();
-    expect(within(sheet).queryByText('工作')).not.toBeInTheDocument();
+    expect(within(detail).getByText('点了什么香')).toBeInTheDocument();
+    expect(within(detail).getByText('晚巷')).toBeInTheDocument();
+    expect(within(detail).getByText('点了多久')).toBeInTheDocument();
+    expect(within(detail).getByText('10 分钟')).toBeInTheDocument();
+    expect(within(detail).getByText('心情如何')).toBeInTheDocument();
+    expect(within(detail).getByText('平静')).toBeInTheDocument();
+    expect(within(detail).getByText('和什么有关')).toBeInTheDocument();
+    expect(within(detail).getByText('房间')).toBeInTheDocument();
+    expect(within(detail).queryByText('听荷')).not.toBeInTheDocument();
+    expect(within(detail).queryByText('15 分钟')).not.toBeInTheDocument();
+    expect(within(detail).queryByText('焦虑')).not.toBeInTheDocument();
+    expect(within(detail).queryByText('工作')).not.toBeInTheDocument();
     expect(within(sheet).queryByText(/推荐|建议|分析/)).not.toBeInTheDocument();
+  });
+
+  it('starts a manual mood record from the weekly sheet and returns with immediate feedback', () => {
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '查看这一周的心绪' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: '这一周的心绪' })).getByRole('button', { name: '记录此刻' }));
+
+    expect(screen.getByText('你现在感受如何？')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '焦虑' }));
+    expect(screen.getByRole('button', { name: '评价认可' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '评价认可' }));
+
+    expect(screen.getByText('这一刻被记下来了')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '收好' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '收好' }));
+
+    const sheet = screen.getByRole('dialog', { name: '这一周的心绪' });
+    expect(within(sheet).getByText('最近 7 天，记录了 1 次。')).toBeInTheDocument();
+    expect(within(sheet).getByText('主动记录')).toBeInTheDocument();
+  });
+
+  it('shows an unread update bell and marks the update center as read when opened', () => {
+    const { rerender } = render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    const bell = screen.getByRole('button', { name: '查看更新通知' });
+    expect(bell).toHaveAttribute('data-unread', 'true');
+
+    fireEvent.click(bell);
+    const updateCenter = screen.getByRole('dialog', { name: '更新通知' });
+    expect(within(updateCenter).getByText('心绪与通知，离你更近一点')).toBeInTheDocument();
+    expect(window.localStorage.getItem('xiaoyu_last_seen_update_id_v1')).toBe('2026-09-mood-notifications');
+
+    fireEvent.click(within(updateCenter).getByRole('button', { name: '关闭更新通知' }));
+    rerender(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    expect(screen.getByRole('button', { name: '查看更新通知' })).toHaveAttribute('data-unread', 'false');
+  });
+
+  it('requests system notification permission only after an explicit opt-in click', async () => {
+    const requestPermission = vi.fn().mockResolvedValue('denied');
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: { permission: 'default', requestPermission },
+    });
+
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    fireEvent.click(screen.getByRole('button', { name: '查看更新通知' }));
+    expect(requestPermission).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '开启系统通知' }));
+    await waitFor(() => expect(requestPermission).toHaveBeenCalledTimes(1));
   });
 });

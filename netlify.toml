@@ -16,6 +16,36 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/push/subscribe"
+  to = "/.netlify/functions/push-subscribe"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/push/schedule"
+  to = "/.netlify/functions/push-schedule"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/push/cancel"
+  to = "/.netlify/functions/push-cancel"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/push/dispatch"
+  to = "/.netlify/functions/push-dispatch"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/push/publish-update"
+  to = "/.netlify/functions/push-publish-update"
+  status = 200
+  force = true
+
 # SPA 路由重定向（所有路由返回 index.html）
 [[redirects]]
   from = "/*"

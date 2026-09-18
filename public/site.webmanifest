@@ -2,6 +2,7 @@
   "name": "小屿和香",
   "short_name": "小屿和香",
   "description": "随线香一起打开的轻量疗愈体验页。",
+  "start_url": "/",
   "icons": [
     {
       "src": "/icon-192.png",

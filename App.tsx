@@ -6,6 +6,7 @@ import DynamicBackground from './components/DynamicBackground';
 import AudioPlayer from './components/AudioPlayer';
 import Ritual from './components/Ritual';
 import Dashboard from './components/Dashboard';
+import FeatureReviewHub from './components/FeatureReviewHub';
 import PlaylistModal from './components/PlaylistModal';
 import { GeminiService, TreeholeResult } from './components/GeminiService';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -40,7 +41,7 @@ const getDashboardMoodPreviewState = (): DashboardMoodPreviewState | null => {
         return null;
     }
 
-    if (preview === 'mood-record') {
+    if (preview === 'mood-record' || preview === 'timer-ended') {
         return {
             step: 'mood',
             scentId,
@@ -1041,6 +1042,13 @@ const App: React.FC = () => {
         isDashboardAudioClosing
     );
     const mainAudioVolume = layer2AudioUrl ? volume * 0.65 : volume;
+
+    const isFeatureReviewHub = import.meta.env.DEV
+        && new URLSearchParams(window.location.search).get('review') === 'feature-mood-notifications';
+
+    if (isFeatureReviewHub) {
+        return <FeatureReviewHub />;
+    }
 
     return (
         <div className="relative w-full h-[100dvh] overflow-hidden select-none bg-background-zen">

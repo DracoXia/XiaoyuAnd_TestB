@@ -4,7 +4,7 @@
 
 # 小屿和 (Xiaoyu And)
 
-**版本**: v2.5.0 (Mood Recording Simplified)
+**版本**: v2.6.0 (Mood & Notifications)
 
 > "和自己，好好在一起"
 
@@ -122,6 +122,13 @@ xiaoyuAnd/
    ```
 
 ## 版本历史
+
+### v2.6.0 (Mood & Notifications)
+
+- 首页更新铃铛、应用内更新中心与用户主动系统通知订阅
+- 主动心绪记录、12 项关联因素、390 条即时反馈和最近 7 天总结
+- Service Worker 计时结束深链、Netlify Push API 与 Supabase 排期表
+- 开发环境审核中心：`/?review=feature-mood-notifications`
 
 ### v2.4.2 (Audio Mode Tracking)
 *   [Feature] **音频模式追踪**:

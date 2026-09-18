@@ -19,12 +19,15 @@ export interface AnalyticsService {
 // 全局服务实例（可被测试覆盖）
 let _serviceInstance: AnalyticsService | null = null;
 let _initPromise: Promise<AnalyticsService | null> | null = null;
+let _serviceExplicitlySet = false;
 
 /**
  * 设置分析服务实例（用于测试或初始化）
  */
 export function setAnalyticsService(service: AnalyticsService | null): void {
+  _serviceExplicitlySet = true;
   _serviceInstance = service;
+  _initPromise = service ? Promise.resolve(service) : null;
 }
 
 /**
@@ -41,6 +44,8 @@ export async function initAnalyticsService(): Promise<AnalyticsService | null> {
   if (_serviceInstance) {
     return _serviceInstance;
   }
+
+  if (_serviceExplicitlySet) return null;
 
   // 避免重复初始化
   if (_initPromise) {

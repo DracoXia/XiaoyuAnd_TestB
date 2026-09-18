@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.6.0 (NFC Gift Feature)
+**当前版本**: v2.6.0 (Mood & Notifications，基于实际 v2.5.0 首发体验版本迭代)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -332,7 +332,15 @@ GROUP BY audio_mode;
 
 ## 8. 版本历史
 
-### v2.6.0 (NFC Gift Feature) - Current
+### v2.6.0 (Mood & Notifications) - Current
+
+- 心绪 V2 本地模型兼容旧 V1 数据，心情与关联因素仍只保存在浏览器
+- 更新清单位于 `public/updates.json`，部署后用 `npm run publish:update` 幂等发布
+- Push API 位于 `/api/push/*`，需要 Supabase service-role、VAPID 和 `PUSH_ADMIN_KEY`
+- Supabase Cron 每分钟调用受管理员密钥保护的 `/api/push/dispatch`
+- 本地审核中心仅开发环境启用：`/?review=feature-mood-notifications`
+
+### v2.6.0 (NFC Gift Feature) - Historical draft
 *   [Feature] **NFC 赠送功能**:
     - Dashboard 头部新增礼物图标按钮（替代原 Apple Music 入口）
     - 点击触发 GiftSetupModal 赠送设置弹窗

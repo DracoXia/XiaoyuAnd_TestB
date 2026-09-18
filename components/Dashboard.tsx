@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Check, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, X } from 'lucide-react';
+import { Bell, CalendarDays, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, X } from 'lucide-react';
 import { FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
+import MoodRecorderSheet, { type MoodRecorderStep } from './MoodRecorderSheet';
+import { CONTEXT_OPTIONS, MOOD_OPTIONS, type MoodContextId, type MoodId } from '../lib/mood/options';
+import { FEEDBACK_LIBRARY, getNextFeedback } from '../lib/mood/feedback';
+import { readMoodRecords, saveMoodRecord, type MoodRecordSource, type MoodRecordV2 } from '../lib/mood/moodRecords';
+import { buildWeeklyInsight } from '../lib/mood/weeklySummary';
+import { getSortedUpdates, UPDATE_READ_STORAGE_KEY } from '../lib/updates/appUpdates';
+import { cancelTimerNotification, getOrCreateDeviceToken, requestNotificationPermission, scheduleTimerNotification, subscribeForNotifications, TIMER_NOTIFICATION_ENABLED_KEY, UPDATE_NOTIFICATION_ENABLED_KEY, type NotificationOptInResult } from '../lib/notifications/pushClient';
 
 interface DashboardProps {
     onScenarioClick: (id: string) => void;
@@ -27,8 +34,6 @@ type ScentVisual = {
 const DEFAULT_DURATION_MINUTES = 15;
 const TIMER_OPTIONS = [10, 15, 20, 30];
 const STORY_SHEET_EXIT_MS = 220;
-const MOOD_SAVED_DISMISS_MS = 1500;
-const MOOD_RECORD_STORAGE_KEY = 'xiaoyu_scent_mood_records_v1';
 const STORY_SHEET_TITLES: Record<string, string> = {
     tinghe: '和清净在一起',
     wanxiang: '和温柔在一起',
@@ -36,125 +41,12 @@ const STORY_SHEET_TITLES: Record<string, string> = {
 };
 const BRAND_LOGO_SRC = '/xiaoyuhe-logo.png';
 
-type MoodRecordStep = 'mood' | 'context' | 'saved';
-
-type MoodRecordOption = {
-    id: string;
-    label: string;
-    note: string;
-    positionClassName: string;
-    orbClassName: string;
-    labelClassName?: string;
-};
-
-type MoodContextOption = {
-    id: string;
-    label: string;
-};
-
-type StoredMoodRecord = {
-    version: 1;
-    id: string;
-    createdAt: string;
-    scentId: string;
-    scentName: string;
-    durationMinutes: number;
-    durationSeconds: number;
-    moodId: string;
-    mood: string;
-    related: string[];
-};
-
 type WeekDayMoodSummary = {
     key: string;
     date: Date;
     weekday: string;
     dayLabel: string;
-    records: StoredMoodRecord[];
-};
-
-const MOOD_RECORD_OPTIONS: MoodRecordOption[] = [
-    {
-        id: 'calm',
-        label: '平静',
-        note: '想先把心放平一点。',
-        positionClassName: 'left-4 top-3 z-10 w-20',
-        orbClassName: 'h-[4.75rem] w-[4.75rem] bg-[#e7f0dd] shadow-[#d8e9cd]/45',
-        labelClassName: 'text-[15px] font-semibold text-slate-700',
-    },
-    {
-        id: 'contented',
-        label: '满足',
-        note: '好像有一点刚刚好。',
-        positionClassName: 'right-4 top-4 z-10 w-20',
-        orbClassName: 'h-[4.75rem] w-[4.75rem] bg-[#f4eadb] shadow-[#ebddc4]/45',
-        labelClassName: 'text-[15px] font-semibold text-slate-700',
-    },
-    {
-        id: 'relaxed',
-        label: '轻松',
-        note: '身上松下来了一点。',
-        positionClassName: 'left-1/2 top-[4.75rem] z-10 w-20 -translate-x-1/2',
-        orbClassName: 'h-[4.25rem] w-[4.25rem] bg-[#e1edf2] shadow-[#d4e6ed]/45',
-        labelClassName: 'text-[15px] font-semibold text-slate-700',
-    },
-    {
-        id: 'tired',
-        label: '疲惫',
-        note: '今天已经用掉很多力气。',
-        positionClassName: 'right-6 top-[9.75rem] z-0 w-[4.5rem]',
-        orbClassName: 'h-16 w-16 bg-[#dbe5f3] shadow-[#d5deef]/45',
-    },
-    {
-        id: 'anxious',
-        label: '焦虑',
-        note: '脑子和心都还有点悬着。',
-        positionClassName: 'left-1/2 top-[11.25rem] z-0 w-[4.5rem] -translate-x-1/2',
-        orbClassName: 'h-14 w-14 bg-[#f5dfd9] shadow-[#edd1c9]/45',
-    },
-    {
-        id: 'low',
-        label: '低落',
-        note: '情绪有点往下沉。',
-        positionClassName: 'left-6 top-[9.75rem] z-0 w-[4.5rem]',
-        orbClassName: 'h-16 w-16 bg-[#eee1ef] shadow-[#e6d5e7]/45',
-    },
-];
-
-const MOOD_CONTEXT_OPTIONS: MoodContextOption[] = [
-    { id: 'work', label: '工作' },
-    { id: 'family', label: '家人' },
-    { id: 'relationship', label: '关系' },
-    { id: 'sleep', label: '睡眠' },
-    { id: 'body', label: '身体' },
-    { id: 'money', label: '钱' },
-    { id: 'future', label: '未来' },
-    { id: 'self', label: '自己' },
-    { id: 'weather', label: '天气' },
-    { id: 'room', label: '房间' },
-    { id: 'sentence', label: '一句话' },
-    { id: 'unclear', label: '说不清' },
-];
-
-const readStoredMoodRecords = (): StoredMoodRecord[] => {
-    if (typeof window === 'undefined') return [];
-
-    try {
-        const rawRecords = window.localStorage.getItem(MOOD_RECORD_STORAGE_KEY);
-        if (!rawRecords) return [];
-
-        const parsedRecords = JSON.parse(rawRecords);
-        return Array.isArray(parsedRecords) ? parsedRecords : [];
-    } catch {
-        return [];
-    }
-};
-
-const saveMoodRecord = (record: StoredMoodRecord) => {
-    if (typeof window === 'undefined') return;
-
-    const existingRecords = readStoredMoodRecords();
-    window.localStorage.setItem(MOOD_RECORD_STORAGE_KEY, JSON.stringify([record, ...existingRecords]));
+    records: MoodRecordV2[];
 };
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -190,7 +82,7 @@ const getMoodVisual = (moodId: string) => {
     }
 };
 
-const getRecentWeekSummaries = (records: StoredMoodRecord[]): WeekDayMoodSummary[] => {
+const getRecentWeekSummaries = (records: MoodRecordV2[]): WeekDayMoodSummary[] => {
     const today = new Date();
 
     return Array.from({ length: 7 }, (_, index) => {
@@ -282,6 +174,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     previewMoodRecordMoodId,
 }) => {
     const initialRemainingSeconds = Math.max(0, initialRemainingSecondsProp ?? DEFAULT_DURATION_MINUTES * 60);
+    const reviewParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
+    const isReviewPreview = import.meta.env.DEV && Boolean(reviewParams?.get('preview'));
     const [localActiveScentId, setLocalActiveScentId] = useState<string | null>(null);
     const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
     const [pendingDurationMinutes, setPendingDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
@@ -290,14 +184,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     const [showStory, setShowStory] = useState(false);
     const [isStoryClosing, setIsStoryClosing] = useState(false);
     const [showMoodRecorder, setShowMoodRecorder] = useState(false);
-    const [moodRecordStep, setMoodRecordStep] = useState<MoodRecordStep>('mood');
-    const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
+    const [moodRecordStep, setMoodRecordStep] = useState<MoodRecorderStep>('mood');
+    const [selectedMoodId, setSelectedMoodId] = useState<MoodId | null>(null);
+    const [moodRecordSource, setMoodRecordSource] = useState<MoodRecordSource>('timer');
+    const [feedbackText, setFeedbackText] = useState<string | null>(null);
+    const [returnToWeekly, setReturnToWeekly] = useState(false);
     const [showWeeklyMood, setShowWeeklyMood] = useState(false);
-    const [weeklyMoodRecords, setWeeklyMoodRecords] = useState<StoredMoodRecord[]>([]);
+    const [showUpdateCenter, setShowUpdateCenter] = useState(false);
+    const [notificationOptInStatus, setNotificationOptInStatus] = useState<NotificationOptInResult | 'idle'>('idle');
+    const [lastSeenUpdateId, setLastSeenUpdateId] = useState(() => (
+        typeof window === 'undefined' ? null : window.localStorage.getItem(UPDATE_READ_STORAGE_KEY)
+    ));
+    const [weeklyMoodRecords, setWeeklyMoodRecords] = useState<MoodRecordV2[]>([]);
     const [selectedWeekDayKey, setSelectedWeekDayKey] = useState<string | null>(null);
     const completionNotifiedRef = useRef(false);
+    const clientTimerIdRef = useRef<string | null>(null);
     const storyCloseTimeoutRef = useRef<number | null>(null);
-    const moodSavedTimeoutRef = useRef<number | null>(null);
 
     const playerScentId = activeScentId !== undefined ? activeScentId : localActiveScentId;
     const activeScent = FRAGRANCE_LIST.find((scent) => scent.id === playerScentId) ?? null;
@@ -319,8 +221,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     const storyOccasionBody = activeScent ? STORY_OCCASIONS[activeScent.id] ?? '适合想把自己慢慢放回当下的时候。' : '';
     const storySheetTitle = activeScent ? STORY_SHEET_TITLES[activeScent.id] ?? `${activeScent.name}的制香师说` : '制香师说';
     const timeParts = formatTime(remainingSeconds);
-    const selectedMood = selectedMoodId ? MOOD_RECORD_OPTIONS.find((option) => option.id === selectedMoodId) ?? null : null;
+    const selectedMood = selectedMoodId ? MOOD_OPTIONS.find((option) => option.id === selectedMoodId) ?? null : null;
     const weekSummaries = getRecentWeekSummaries(weeklyMoodRecords);
+    const weeklyInsight = buildWeeklyInsight(weeklyMoodRecords);
     const selectedWeekDay =
         weekSummaries.find((day) => day.key === selectedWeekDayKey) ?? weekSummaries[weekSummaries.length - 1] ?? null;
     const selectedWeekRecords = selectedWeekDay?.records ?? [];
@@ -332,6 +235,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             : '刚刚';
     const selectedWeekRecordVisual = selectedWeekRecord ? getMoodVisual(selectedWeekRecord.moodId) : null;
     const weeklyRecordCount = weekSummaries.reduce((total, day) => total + day.records.length, 0);
+    const updates = getSortedUpdates();
+    const latestUpdateId = updates[0]?.id ?? null;
+    const hasUnreadUpdate = reviewParams?.get('fixture') === 'unread'
+        || Boolean(latestUpdateId && lastSeenUpdateId !== latestUpdateId);
 
     const clearStoryCloseTimeout = () => {
         if (storyCloseTimeoutRef.current !== null) {
@@ -340,26 +247,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
     };
 
-    const clearMoodSavedTimeout = () => {
-        if (moodSavedTimeoutRef.current !== null) {
-            window.clearTimeout(moodSavedTimeoutRef.current);
-            moodSavedTimeoutRef.current = null;
-        }
-    };
-
     const resetMoodRecorder = () => {
-        clearMoodSavedTimeout();
         setShowMoodRecorder(false);
         setMoodRecordStep('mood');
         setSelectedMoodId(null);
-    };
-
-    const scheduleMoodSavedDismiss = () => {
-        clearMoodSavedTimeout();
-        moodSavedTimeoutRef.current = window.setTimeout(() => {
-            moodSavedTimeoutRef.current = null;
-            resetMoodRecorder();
-        }, MOOD_SAVED_DISMISS_MS);
+        setFeedbackText(null);
+        setReturnToWeekly(false);
     };
 
     const openStorySheet = () => {
@@ -393,14 +286,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         setMoodRecordStep('mood');
         setSelectedMoodId(null);
         clearStoryCloseTimeout();
-        clearMoodSavedTimeout();
         completionNotifiedRef.current = false;
     }, [activeScent?.id, initialRemainingSeconds]);
 
     useEffect(() => {
         return () => {
             clearStoryCloseTimeout();
-            clearMoodSavedTimeout();
         };
     }, []);
 
@@ -415,6 +306,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     }, [activeScent, playerIsPlaying, remainingSeconds]);
 
     useEffect(() => {
+        if (!activeScent || isReviewPreview || window.localStorage.getItem(TIMER_NOTIFICATION_ENABLED_KEY) !== 'true') return;
+        const deviceToken = getOrCreateDeviceToken();
+        clientTimerIdRef.current ??= `timer-${activeScent.id}-${Date.now()}`;
+        if (playerIsPlaying && remainingSeconds > 0) {
+            void scheduleTimerNotification({
+                clientTimerId: clientTimerIdRef.current,
+                deviceToken,
+                dueAt: new Date(Date.now() + remainingSeconds * 1000).toISOString(),
+                scentId: activeScent.id,
+            }).catch(() => undefined);
+        } else {
+            void cancelTimerNotification(clientTimerIdRef.current, deviceToken).catch(() => undefined);
+        }
+    }, [activeScent?.id, durationMinutes, isReviewPreview, playerIsPlaying]);
+
+    useEffect(() => {
         if (!activeScent || remainingSeconds > 0 || completionNotifiedRef.current) return;
 
         completionNotifiedRef.current = true;
@@ -422,9 +329,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         setShowStory(false);
         setIsStoryClosing(false);
         clearStoryCloseTimeout();
-        clearMoodSavedTimeout();
         setMoodRecordStep('mood');
         setSelectedMoodId(null);
+        setMoodRecordSource('timer');
+        setFeedbackText(null);
+        setReturnToWeekly(false);
         setShowMoodRecorder(true);
         onTimerComplete?.();
     }, [activeScent, onTimerComplete, remainingSeconds]);
@@ -432,16 +341,16 @@ const Dashboard: React.FC<DashboardProps> = ({
     useEffect(() => {
         if (!activeScent || !previewMoodRecordStep) return;
 
-        const previewMoodId = MOOD_RECORD_OPTIONS.some((option) => option.id === previewMoodRecordMoodId)
-            ? previewMoodRecordMoodId
-            : MOOD_RECORD_OPTIONS[0]?.id ?? null;
+        const previewMoodId = MOOD_OPTIONS.some((option) => option.id === previewMoodRecordMoodId)
+            ? previewMoodRecordMoodId as MoodId
+            : MOOD_OPTIONS[0]?.id ?? null;
 
         setShowTimerSettings(false);
         setShowStory(false);
         setIsStoryClosing(false);
         clearStoryCloseTimeout();
-        clearMoodSavedTimeout();
         setShowMoodRecorder(true);
+        setMoodRecordSource('timer');
 
         if (previewMoodRecordStep === 'context' && previewMoodId) {
             setSelectedMoodId(previewMoodId);
@@ -453,12 +362,74 @@ const Dashboard: React.FC<DashboardProps> = ({
         setMoodRecordStep('mood');
     }, [activeScent, previewMoodRecordMoodId, previewMoodRecordStep]);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('open') === 'updates') {
+            setShowUpdateCenter(true);
+            if (latestUpdateId) {
+                window.localStorage.setItem(UPDATE_READ_STORAGE_KEY, latestUpdateId);
+                setLastSeenUpdateId(latestUpdateId);
+            }
+        }
+    }, [latestUpdateId]);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV || typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const preview = params.get('preview');
+        if (!preview || preview === 'timer-ended') return;
+
+        if (preview === 'updates' || preview === 'notification-opt-in') {
+            setShowUpdateCenter(true);
+            return;
+        }
+        if (preview === 'weekly-summary') {
+            const now = Date.now();
+            const records: MoodRecordV2[] = [
+                { version: 2, id: 'review-1', source: 'manual', createdAt: new Date(now - 60_000).toISOString(), moodId: 'contented', mood: '满足', contextId: 'recognition', contextLabel: '评价认可', feedbackId: 'contented-recognition-1' },
+                { version: 2, id: 'review-2', source: 'timer', createdAt: new Date(now - 86_400_000).toISOString(), moodId: 'anxious', mood: '焦虑', contextId: 'recognition', contextLabel: '评价认可', feedbackId: 'anxious-recognition-1', scentId: 'tinghe', scentName: '听荷', durationMinutes: 15 },
+                { version: 2, id: 'review-3', source: 'manual', createdAt: new Date(now - 172_800_000).toISOString(), moodId: 'tired', mood: '疲惫', contextId: 'workload', contextLabel: '工作量', feedbackId: 'tired-workload-1' },
+            ];
+            setWeeklyMoodRecords(records);
+            const summaries = getRecentWeekSummaries(records);
+            setSelectedWeekDayKey(summaries[summaries.length - 1]?.key ?? null);
+            setShowWeeklyMood(true);
+            return;
+        }
+        if (preview === 'mood-record') {
+            setMoodRecordSource('manual');
+            setMoodRecordStep('mood');
+            setShowMoodRecorder(true);
+            return;
+        }
+        const mood = MOOD_OPTIONS.some((option) => option.id === params.get('mood')) ? params.get('mood') as MoodId : 'anxious';
+        if (preview === 'mood-context') {
+            setMoodRecordSource('manual');
+            setSelectedMoodId(mood);
+            setMoodRecordStep('context');
+            setShowMoodRecorder(true);
+            return;
+        }
+        if (preview === 'mood-feedback') {
+            const context = params.get('context') ?? 'recognition';
+            const variant = Math.max(0, Number(params.get('variant') ?? '1') - 1);
+            setMoodRecordSource('manual');
+            setSelectedMoodId(mood);
+            setFeedbackText(FEEDBACK_LIBRARY[`${mood}:${context}`]?.[variant] ?? FEEDBACK_LIBRARY[`${mood}:none`][0]);
+            setMoodRecordStep('feedback');
+            setShowMoodRecorder(true);
+        }
+    }, []);
+
     const handleOpenScent = (scentId: string) => {
         setLocalActiveScentId(scentId);
         onScenarioClick(scentId);
     };
 
     const handleClosePlayer = () => {
+        if (clientTimerIdRef.current && window.localStorage.getItem(TIMER_NOTIFICATION_ENABLED_KEY) === 'true') {
+            void cancelTimerNotification(clientTimerIdRef.current, getOrCreateDeviceToken()).catch(() => undefined);
+        }
+        clientTimerIdRef.current = null;
         setLocalActiveScentId(null);
         setShowTimerSettings(false);
         setShowStory(false);
@@ -467,7 +438,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         setMoodRecordStep('mood');
         setSelectedMoodId(null);
         clearStoryCloseTimeout();
-        clearMoodSavedTimeout();
         onClosePlayer?.();
     };
 
@@ -478,40 +448,42 @@ const Dashboard: React.FC<DashboardProps> = ({
         setShowTimerSettings(false);
     };
 
-    const handleMoodSelect = (moodId: string) => {
+    const handleMoodSelect = (moodId: MoodId) => {
         setSelectedMoodId(moodId);
         setMoodRecordStep('context');
     };
 
-    const handleSaveMoodRecord = (contextIds: string[]) => {
-        if (!activeScent || !selectedMood) return;
+    const handleSaveMoodRecord = (contextId: MoodContextId | null) => {
+        if (!selectedMood) return;
 
-        const related = contextIds
-            .map((contextId) => MOOD_CONTEXT_OPTIONS.find((option) => option.id === contextId)?.label)
-            .filter((label): label is string => Boolean(label));
+        const context = contextId ? CONTEXT_OPTIONS.find((option) => option.id === contextId) ?? null : null;
+        const feedback = getNextFeedback(selectedMood.id, contextId);
         const createdAt = new Date().toISOString();
-
-        const record: StoredMoodRecord = {
-            version: 1,
-            id: `${createdAt}-${activeScent.id}`,
+        const record: MoodRecordV2 = {
+            version: 2,
+            id: `${createdAt}-${moodRecordSource}`,
+            source: moodRecordSource,
             createdAt,
-            scentId: activeScent.id,
-            scentName: activeScent.name,
-            durationMinutes,
-            durationSeconds: durationMinutes * 60,
             moodId: selectedMood.id,
             mood: selectedMood.label,
-            related,
+            contextId,
+            contextLabel: context?.label ?? null,
+            feedbackId: feedback.id,
+            ...(moodRecordSource === 'timer' && activeScent ? {
+                scentId: activeScent.id,
+                scentName: activeScent.name,
+                durationMinutes,
+            } : {}),
         };
 
-        saveMoodRecord(record);
-        setWeeklyMoodRecords(readStoredMoodRecords());
-        setMoodRecordStep('saved');
-        scheduleMoodSavedDismiss();
+        if (!isReviewPreview) saveMoodRecord(record);
+        setWeeklyMoodRecords(isReviewPreview ? [record, ...weeklyMoodRecords] : readMoodRecords());
+        setFeedbackText(feedback.text);
+        setMoodRecordStep('feedback');
     };
 
-    const handleContextSelect = (contextId: string) => {
-        handleSaveMoodRecord([contextId]);
+    const handleContextSelect = (contextId: MoodContextId) => {
+        handleSaveMoodRecord(contextId);
     };
 
     const handleSkipMoodRecord = () => {
@@ -519,11 +491,26 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
 
     const handleSkipMoodContext = () => {
-        handleSaveMoodRecord([]);
+        handleSaveMoodRecord(null);
+    };
+
+    const handleCollectFeedback = () => {
+        setShowMoodRecorder(false);
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+        setFeedbackText(null);
+        if (returnToWeekly) {
+            const records = readMoodRecords();
+            setWeeklyMoodRecords(records);
+            const summaries = getRecentWeekSummaries(records);
+            setSelectedWeekDayKey(summaries[summaries.length - 1]?.key ?? null);
+            setShowWeeklyMood(true);
+        }
+        setReturnToWeekly(false);
     };
 
     const openWeeklyMoodSheet = () => {
-        const storedRecords = readStoredMoodRecords();
+        const storedRecords = readMoodRecords();
         const summaries = getRecentWeekSummaries(storedRecords);
         const latestRecordedDay = [...summaries].reverse().find((day) => day.records.length > 0);
         const fallbackDay = summaries[summaries.length - 1] ?? null;
@@ -535,6 +522,45 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     const closeWeeklyMoodSheet = () => {
         setShowWeeklyMood(false);
+    };
+
+    const openManualMoodRecord = () => {
+        setShowWeeklyMood(false);
+        setMoodRecordSource('manual');
+        setMoodRecordStep('mood');
+        setSelectedMoodId(null);
+        setFeedbackText(null);
+        setReturnToWeekly(true);
+        setShowMoodRecorder(true);
+    };
+
+    const openUpdateCenter = () => {
+        setShowUpdateCenter(true);
+        if (latestUpdateId && !isReviewPreview) {
+            window.localStorage.setItem(UPDATE_READ_STORAGE_KEY, latestUpdateId);
+            setLastSeenUpdateId(latestUpdateId);
+        }
+    };
+
+    const handleNotificationOptIn = async () => {
+        if (isReviewPreview) return;
+        const result = await requestNotificationPermission();
+        setNotificationOptInStatus(result);
+        if (result !== 'granted') return;
+        window.localStorage.setItem(UPDATE_NOTIFICATION_ENABLED_KEY, 'true');
+        window.localStorage.setItem(TIMER_NOTIFICATION_ENABLED_KEY, 'true');
+        const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (!publicKey || !('serviceWorker' in navigator)) return;
+        try {
+            await subscribeForNotifications({
+                serviceWorker: navigator.serviceWorker,
+                fetcher: window.fetch.bind(window),
+                publicKey,
+                deviceToken: getOrCreateDeviceToken(),
+            });
+        } catch {
+            // 系统通知是增强能力，订阅失败不阻断计时与心绪记录。
+        }
     };
 
     if (activeScent) {
@@ -636,7 +662,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="absolute inset-0 z-30 flex items-end bg-[#fbf3f4]/50 backdrop-blur-[8px]" onClick={() => setShowTimerSettings(false)}>
                         <div
                             data-sheet-panel="timer-settings"
-                            className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/98 px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl"
+                            className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8] px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)]"
                             onClick={(event) => event.stopPropagation()}
                         >
                             <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
@@ -694,7 +720,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <div
                             data-sheet-panel="story"
                             data-state={isStoryClosing ? 'closing' : 'open'}
-                            className={`no-scrollbar max-h-[80vh] w-full overflow-y-auto rounded-t-[2rem] border border-white/80 bg-[#fffaf7]/98 px-6 pb-10 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl ${
+                            className={`no-scrollbar max-h-[80vh] w-full overflow-y-auto rounded-t-[2rem] border border-white/80 bg-[#fffaf7] px-6 pb-10 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] ${
                                 isStoryClosing
                                     ? 'translate-y-6 opacity-0 transition-all duration-200 ease-out'
                                     : 'translate-y-0 opacity-100 animate-fade-in-up'
@@ -749,118 +775,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                 )}
 
                 {showMoodRecorder && (
-                    <div
-                        data-sheet-overlay="mood-record"
-                        className="absolute inset-0 z-40 flex items-end bg-[#fbf3f4]/70 backdrop-blur-[10px] animate-fade-in"
-                        onClick={handleSkipMoodRecord}
-                    >
-                        <div
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label="记录此刻心情"
-                            data-sheet-panel="mood-record"
-                            data-step={moodRecordStep}
-                            className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/96 px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl animate-fade-in-up"
-                            onClick={(event) => event.stopPropagation()}
-                        >
-                            <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
-
-                            {moodRecordStep === 'mood' && (
-                                <div className="mx-auto max-w-md">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">MOMENT CHECK</p>
-                                            <h2 className="mt-2 text-2xl font-medium text-slate-800">你现在感受如何？</h2>
-                                            <p className="mt-2 text-sm leading-6 text-slate-500">现在的你，更接近哪一种？</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            aria-label="先不记"
-                                            onClick={handleSkipMoodRecord}
-                                            className="rounded-full bg-slate-900/5 p-2 text-slate-700 transition hover:bg-slate-900/10 active:scale-95"
-                                        >
-                                            <X className="h-5 w-5" strokeWidth={1.6} />
-                                        </button>
-                                    </div>
-
-                                    <div
-                                        aria-label="心情气泡"
-                                        className="relative mx-auto mt-6 h-[17rem] max-w-[330px] overflow-visible"
-                                    >
-                                        {MOOD_RECORD_OPTIONS.map((mood) => (
-                                            <button
-                                                key={mood.id}
-                                                type="button"
-                                                aria-label={mood.label}
-                                                onClick={() => handleMoodSelect(mood.id)}
-                                                className={`group absolute flex flex-col items-center gap-2 text-slate-500 outline-none transition duration-500 active:scale-95 ${mood.positionClassName}`}
-                                            >
-                                                <span
-                                                    className={`block rounded-full border border-white/60 blur-[1px] shadow-xl transition duration-500 group-hover:scale-110 group-hover:blur-0 ${mood.orbClassName}`}
-                                                />
-                                                <span className={`relative z-10 text-sm font-medium tracking-[0.04em] text-slate-600 drop-shadow-[0_2px_10px_rgba(255,255,255,0.96)] transition group-hover:text-slate-800 ${mood.labelClassName ?? ''}`}>
-                                                    {mood.label}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleSkipMoodRecord}
-                                        className="mx-auto mt-2 block rounded-full bg-white/55 px-5 py-3 text-sm font-medium text-slate-500 transition hover:bg-white active:scale-95"
-                                    >
-                                        先不记
-                                    </button>
-                                </div>
-                            )}
-
-                            {moodRecordStep === 'context' && selectedMood && (
-                                <div className="mx-auto max-w-md">
-                                    <button
-                                        type="button"
-                                        onClick={() => setMoodRecordStep('mood')}
-                                        className="mb-5 text-xs font-medium uppercase tracking-[0.16em] text-slate-400 transition hover:text-slate-700"
-                                    >
-                                        返回
-                                    </button>
-
-                                    <h2 className="mt-6 text-2xl font-medium text-slate-800">这份感觉和什么有关？</h2>
-
-                                    <div className="mt-5 flex flex-wrap gap-2.5">
-                                        {MOOD_CONTEXT_OPTIONS.map((context) => (
-                                            <button
-                                                key={context.id}
-                                                type="button"
-                                                onClick={() => handleContextSelect(context.id)}
-                                                className="inline-flex items-center rounded-full border border-white/70 bg-white/58 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:border-[#d99b91]/40 hover:bg-white hover:text-[#7a4038] active:scale-95"
-                                            >
-                                                {context.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleSkipMoodContext}
-                                        className="mt-7 rounded-full bg-white/58 px-5 py-3 text-sm font-medium text-slate-500 transition hover:bg-white active:scale-95"
-                                    >
-                                        跳过
-                                    </button>
-                                </div>
-                            )}
-
-                            {moodRecordStep === 'saved' && (
-                                <div className="mx-auto max-w-md py-10 text-center">
-                                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/80 bg-[#f4ddd8] text-[#7a4038] shadow-[0_18px_48px_rgba(217,155,145,0.22)]">
-                                            <Check className="h-7 w-7" strokeWidth={1.8} />
-                                        </div>
-                                    <h2 className="text-2xl font-medium text-slate-800">已经记录</h2>
-                                    <p className="mt-3 text-sm leading-6 text-slate-500">这次记录已存在本地浏览器里。</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <MoodRecorderSheet
+                        step={moodRecordStep}
+                        selectedMoodId={selectedMoodId}
+                        feedbackText={feedbackText}
+                        onMoodSelect={handleMoodSelect}
+                        onContextSelect={handleContextSelect}
+                        onSkipContext={handleSkipMoodContext}
+                        onBack={() => setMoodRecordStep('mood')}
+                        onClose={handleSkipMoodRecord}
+                        onCollect={handleCollectFeedback}
+                    />
                 )}
             </div>
         );
@@ -891,15 +816,27 @@ const Dashboard: React.FC<DashboardProps> = ({
                         alt="小屿和品牌 Logo"
                         className="h-auto w-[10.4rem] object-contain opacity-80 sm:w-[10.9rem]"
                     />
-                    <button
-                        type="button"
-                        aria-label="查看这一周的心绪"
-                        onClick={openWeeklyMoodSheet}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
-                    >
-                        <CalendarDays className="h-4 w-4" strokeWidth={1.7} />
-                        <span>一周心绪</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            aria-label="查看这一周的心绪"
+                            onClick={openWeeklyMoodSheet}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
+                        >
+                            <CalendarDays className="h-4 w-4" strokeWidth={1.7} />
+                            <span>一周心绪</span>
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="查看更新通知"
+                            data-unread={hasUnreadUpdate ? 'true' : 'false'}
+                            onClick={openUpdateCenter}
+                            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/65 bg-white/45 text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
+                        >
+                            <Bell className="h-4 w-4" strokeWidth={1.7} />
+                            {hasUnreadUpdate && <span aria-hidden="true" className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#d97777] ring-2 ring-[#f7f2f8]" />}
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -988,7 +925,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         aria-modal="true"
                         aria-label="这一周的心绪"
                         data-sheet-panel="weekly-mood"
-                        className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8]/96 px-6 pb-7 pt-5 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] backdrop-blur-3xl animate-fade-in-up"
+                        className="max-h-[94dvh] w-full overflow-y-auto rounded-t-[2rem] border border-white/80 bg-[#fffaf8] px-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.75rem)] pt-5 shadow-[0_-28px_90px_rgba(94,69,72,0.12)] animate-fade-in-up"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
@@ -1011,6 +948,29 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     <X className="h-5 w-5" strokeWidth={1.6} />
                                 </button>
                             </div>
+
+                            <button
+                                type="button"
+                                onClick={openManualMoodRecord}
+                                className="mt-5 w-full rounded-full bg-[#6f5b68] px-5 py-3 text-sm font-medium text-white shadow-[0_12px_28px_rgba(111,91,104,0.18)] active:scale-[0.99]"
+                            >
+                                记录此刻
+                            </button>
+
+                            <section aria-label="最近七天总结" className="mt-5 grid grid-cols-2 gap-2">
+                                <div className="rounded-[1.25rem] border border-white/75 bg-white/58 p-3">
+                                    <p className="text-[11px] text-slate-400">最舒展的一次</p>
+                                    <p className="mt-1 text-sm font-medium text-slate-700">{weeklyInsight.mostExpansive?.mood ?? '记录还比较集中'}</p>
+                                </div>
+                                <div className="rounded-[1.25rem] border border-white/75 bg-white/58 p-3">
+                                    <p className="text-[11px] text-slate-400">最难熬的一次</p>
+                                    <p className="mt-1 text-sm font-medium text-slate-700">{weeklyInsight.hardest?.mood ?? '暂不判断'}</p>
+                                </div>
+                                <div className="col-span-2 rounded-[1.25rem] border border-white/75 bg-white/58 p-3">
+                                    <p className="text-[11px] text-slate-400">最常出现的关联</p>
+                                    <p className="mt-1 text-sm font-medium text-slate-700">{weeklyInsight.relatedFactors.length ? weeklyInsight.relatedFactors.join('、') : '再多留几次记录，关联会更清楚'}</p>
+                                </div>
+                            </section>
 
                             <div className="mt-6 grid grid-cols-7 gap-2">
                                 {weekSummaries.map((day) => {
@@ -1070,14 +1030,23 @@ const Dashboard: React.FC<DashboardProps> = ({
                                             </div>
 
                                             <div className="mt-3 grid grid-cols-2 gap-2">
-                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
-                                                    <p className="text-[11px] text-slate-400">点了什么香</p>
-                                                    <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.scentName}</p>
-                                                </div>
-                                                <div className="rounded-[1rem] bg-white/52 px-3 py-2">
-                                                    <p className="text-[11px] text-slate-400">点了多久</p>
-                                                    <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.durationMinutes} 分钟</p>
-                                                </div>
+                                                {selectedWeekRecord.source === 'timer' ? (
+                                                    <>
+                                                        <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                            <p className="text-[11px] text-slate-400">点了什么香</p>
+                                                            <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.scentName}</p>
+                                                        </div>
+                                                        <div className="rounded-[1rem] bg-white/52 px-3 py-2">
+                                                            <p className="text-[11px] text-slate-400">点了多久</p>
+                                                            <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.durationMinutes} 分钟</p>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="col-span-2 rounded-[1rem] bg-white/52 px-3 py-2">
+                                                        <p className="text-[11px] text-slate-400">记录方式</p>
+                                                        <p className="mt-1 text-sm font-medium text-slate-700">主动记录</p>
+                                                    </div>
+                                                )}
                                                 <div className="rounded-[1rem] bg-white/52 px-3 py-2">
                                                     <p className="text-[11px] text-slate-400">心情如何</p>
                                                     <p className="mt-1 text-sm font-medium text-slate-700">{selectedWeekRecord.mood}</p>
@@ -1085,7 +1054,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                                 <div className="rounded-[1rem] bg-white/52 px-3 py-2">
                                                     <p className="text-[11px] text-slate-400">和什么有关</p>
                                                     <p className="mt-1 text-sm font-medium text-slate-700">
-                                                        {selectedWeekRecord.related?.length > 0 ? selectedWeekRecord.related.join('、') : '未选择'}
+                                                        {selectedWeekRecord.contextLabel ?? '未选择'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1101,6 +1070,68 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     </div>
                 </div>
+            )}
+            {showUpdateCenter && (
+                <div className="fixed inset-0 z-50 flex items-end bg-[#fbf3f4]/68 backdrop-blur-[10px]" onClick={() => setShowUpdateCenter(false)}>
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="更新通知"
+                        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-[2rem] border border-white/80 bg-[#fffaf8] px-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.75rem)] pt-5 shadow-[0_-28px_90px_rgba(94,69,72,0.12)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300/70" />
+                        <div className="mx-auto max-w-md">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">WHAT'S NEW</p>
+                                    <h2 className="mt-2 text-2xl font-medium text-slate-800">更新通知</h2>
+                                </div>
+                                <button type="button" aria-label="关闭更新通知" onClick={() => setShowUpdateCenter(false)} className="rounded-full bg-slate-900/5 p-2 text-slate-700">
+                                    <X className="h-5 w-5" strokeWidth={1.6} />
+                                </button>
+                            </div>
+                            <div className="mt-6 space-y-3">
+                                <section aria-label="系统通知设置" className="rounded-[1.5rem] border border-[#eadfe6] bg-[#f8f0f4] p-4">
+                                    <p className="text-sm font-medium text-slate-800">在系统通知里收到新消息</p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-500">由你决定是否开启；我们只会在点击按钮后申请浏览器权限。</p>
+                                    <button type="button" onClick={handleNotificationOptIn} className="mt-3 rounded-full bg-[#6f5b68] px-4 py-2 text-xs font-medium text-white">
+                                        开启系统通知
+                                    </button>
+                                    {notificationOptInStatus === 'denied' && <p className="mt-2 text-xs text-slate-500">浏览器没有允许通知，应用内功能仍可正常使用。</p>}
+                                    {notificationOptInStatus === 'unsupported' && <p className="mt-2 text-xs text-slate-500">当前浏览器不支持系统通知，应用内功能仍可正常使用。</p>}
+                                    {notificationOptInStatus === 'granted' && <p className="mt-2 text-xs text-slate-500">系统通知已开启。</p>}
+                                </section>
+                                {updates.map((update) => (
+                                    <article key={update.id} className="rounded-[1.5rem] border border-white/80 bg-white/62 p-4 shadow-[0_16px_44px_rgba(94,69,72,0.07)]">
+                                        <div className="flex items-center justify-between gap-3 text-[11px] text-slate-400">
+                                            <span>v{update.version}</span>
+                                            <time dateTime={update.publishedAt}>{update.publishedAt}</time>
+                                        </div>
+                                        <h3 className="mt-3 text-lg font-medium text-slate-800">{update.title}</h3>
+                                        <p className="mt-2 text-sm leading-6 text-slate-600">{update.summary}</p>
+                                        <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-500">
+                                            {update.details.map((detail) => <li key={detail}>· {detail}</li>)}
+                                        </ul>
+                                    </article>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showMoodRecorder && !activeScent && (
+                <MoodRecorderSheet
+                    step={moodRecordStep}
+                    selectedMoodId={selectedMoodId}
+                    feedbackText={feedbackText}
+                    onMoodSelect={handleMoodSelect}
+                    onContextSelect={handleContextSelect}
+                    onSkipContext={handleSkipMoodContext}
+                    onBack={() => setMoodRecordStep('mood')}
+                    onClose={handleSkipMoodRecord}
+                    onCollect={handleCollectFeedback}
+                />
             )}
         </div>
     );

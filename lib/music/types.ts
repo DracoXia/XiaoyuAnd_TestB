@@ -6,7 +6,7 @@
 /**
  * 支持的音乐平台
  */
-export type MusicPlatform = 'netease' | 'gift' | 'xiaoyu';
+export type MusicPlatform = 'netease' | 'apple' | 'gift' | 'xiaoyu';
 
 /**
  * 音乐曲目信息
@@ -133,20 +133,19 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     available: true,
   },
   {
-    id: 'gift',
-    name: '朋友的礼物',
+    id: 'apple',
+    name: 'Apple Music',
     icon: 'gift',
     color: '#EC4899',
-    available: false,
-    comingSoon: true,
+    available: true,
   },
   {
     id: 'xiaoyu',
     name: '小屿和音乐库',
     icon: 'sparkles',
     color: '#F59E0B',
-    available: true,
-    comingSoon: false,
+    available: false,
+    comingSoon: true,
   },
 ];
 

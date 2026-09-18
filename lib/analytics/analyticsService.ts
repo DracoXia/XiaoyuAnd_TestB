@@ -38,8 +38,6 @@ export class AnalyticsService implements IAnalyticsService {
   constructor(supabaseClient: SupabaseClient) {
     this.userService = new UserService();
     this.supabase = supabaseClient;
-    // 将 Supabase 客户端传递给 UserService，以便用户数据能写入数据库
-    this.userService.setSupabaseClient(supabaseClient);
     this.loadSessionFromStorage();
   }
 

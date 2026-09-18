@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./test/setup.ts'],
       include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-      exclude: ['node_modules', 'dist'],
+      exclude: ['node_modules', 'dist', 'e2e/**', 'playwright-report/**', 'test-results/**'],
       coverage: {
         reporter: ['text', 'json', 'html'],
         exclude: [
