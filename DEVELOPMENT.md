@@ -7,7 +7,7 @@
 
 **品牌 Slogan**: 和自己，好好在一起
 
-**当前版本**: v2.6.0 (Mood & Notifications，基于实际 v2.5.0 首发体验版本迭代)
+**当前版本**: v2.7.0 (First-Visit Tour，基于 v2.6.0 心绪与通知版迭代)
 
 **品牌命名规范**: 详见 [brand_naming_specification.md](../../docs/brand_naming_specification.md)
 
@@ -332,7 +332,14 @@ GROUP BY audio_mode;
 
 ## 8. 版本历史
 
-### v2.6.0 (Mood & Notifications) - Current
+### v2.7.0 (First-Visit Tour) - Current
+
+- 首次进入教学状态机位于 `lib/onboarding/firstVisitTour.ts`
+- 完成或跳过标记保存为本地键 `xiaoyu_first_visit_tour_v1`
+- 页面目标通过 `data-tour-target` 暴露；遮罩只允许当前聚焦区接收点击
+- 纵向主路径：选香 → 设置时长 → 制香师说 → 一周心绪首条记录 → 通知入口
+
+### v2.6.0 (Mood & Notifications)
 
 - 心绪 V2 本地模型兼容旧 V1 数据，心情与关联因素仍只保存在浏览器
 - 更新清单位于 `public/updates.json`，部署后用 `npm run publish:update` 幂等发布

@@ -99,7 +99,7 @@ describe('Dashboard - v0.3 香味首页', () => {
   let localStorageStore: Record<string, string>;
 
   beforeEach(() => {
-    localStorageStore = {};
+    localStorageStore = { xiaoyu_first_visit_tour_v1: 'completed' };
     Object.defineProperty(window, 'localStorage', {
       value: {
         getItem: vi.fn((key: string) => localStorageStore[key] ?? null),
@@ -119,6 +119,64 @@ describe('Dashboard - v0.3 香味首页', () => {
     mockOnPlaybackToggle.mockClear();
     mockOnClosePlayer.mockClear();
     mockOnTimerComplete.mockClear();
+  });
+
+  it('shows the focused first-visit guide once and remembers when it is skipped', async () => {
+    delete localStorageStore.xiaoyu_first_visit_tour_v1;
+    const user = userEvent.setup();
+    const { unmount } = render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('先选一支香');
+    expect(screen.getByRole('button', { name: /打开听荷/ })).toHaveAttribute('data-tour-target', 'scent');
+
+    await user.click(screen.getByRole('button', { name: '跳过引导' }));
+    expect(screen.queryByRole('dialog', { name: '新手引导' })).not.toBeInTheDocument();
+    expect(localStorageStore.xiaoyu_first_visit_tour_v1).toBe('completed');
+
+    unmount();
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+    expect(screen.queryByRole('dialog', { name: '新手引导' })).not.toBeInTheDocument();
+  });
+
+  it('guides a first-time user through scent, timer, story, first mood record, and notifications', async () => {
+    delete localStorageStore.xiaoyu_first_visit_tour_v1;
+    render(<Dashboard onScenarioClick={mockOnScenarioClick} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /打开听荷/ }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('设置陪伴时间');
+
+    fireEvent.click(screen.getByRole('button', { name: '设置燃香时间' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('选一个喜欢的时长');
+    fireEvent.click(screen.getByRole('button', { name: '20 分钟' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('认识这支香');
+
+    fireEvent.click(screen.getByRole('button', { name: /制香师说/ }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('看完后继续');
+    fireEvent.click(screen.getByRole('button', { name: '关闭制香师说' }));
+    await waitFor(() => expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('回到主页'));
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭播放页' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('找到一周心绪');
+    fireEvent.click(screen.getByRole('button', { name: '查看这一周的心绪' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('记录此刻');
+    fireEvent.click(screen.getByRole('button', { name: '记录此刻' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('选择此刻的感受');
+
+    fireEvent.click(screen.getByRole('button', { name: '焦虑' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('看看它和什么有关');
+    fireEvent.click(screen.getByRole('button', { name: '评价认可' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('收好这次记录');
+    fireEvent.click(screen.getByRole('button', { name: '收好' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('关闭一周心绪');
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭这一周的心绪' }));
+    expect(screen.getByRole('dialog', { name: '新手引导' })).toHaveTextContent('音乐结束时提醒你');
+    fireEvent.click(screen.getByRole('button', { name: '查看更新通知' }));
+
+    expect(screen.getByRole('dialog', { name: '更新通知' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '新手引导' })).not.toBeInTheDocument();
+    expect(localStorageStore.xiaoyu_first_visit_tour_v1).toBe('completed');
   });
 
   it('renders the v0.3 first-screen copy, weekly entry, and scent cards', () => {
@@ -453,8 +511,8 @@ describe('Dashboard - v0.3 香味首页', () => {
 
     fireEvent.click(bell);
     const updateCenter = screen.getByRole('dialog', { name: '更新通知' });
-    expect(within(updateCenter).getByText('心绪与通知，离你更近一点')).toBeInTheDocument();
-    expect(window.localStorage.getItem('xiaoyu_last_seen_update_id_v1')).toBe('2026-09-mood-notifications');
+    expect(within(updateCenter).getByText('第一次使用，更容易找到入口')).toBeInTheDocument();
+    expect(window.localStorage.getItem('xiaoyu_last_seen_update_id_v1')).toBe('2026-09-first-visit-tour');
 
     fireEvent.click(within(updateCenter).getByRole('button', { name: '关闭更新通知' }));
     rerender(<Dashboard onScenarioClick={mockOnScenarioClick} />);

@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bell, CalendarDays, CloudRain, Leaf, MessageCircleMore, Moon, Pause, Play, Timer, X } from 'lucide-react';
 import { FRAGRANCE_LIST, TEXT_CONTENT } from '../constants';
 import MoodRecorderSheet, { type MoodRecorderStep } from './MoodRecorderSheet';
+import FirstVisitTour from './FirstVisitTour';
+import { FIRST_VISIT_TOUR_STORAGE_KEY, getInitialTourStep, nextTourStep, type FirstVisitTourStep } from '../lib/onboarding/firstVisitTour';
 import { CONTEXT_OPTIONS, MOOD_OPTIONS, type MoodContextId, type MoodId } from '../lib/mood/options';
 import { FEEDBACK_LIBRARY, getNextFeedback } from '../lib/mood/feedback';
 import { readMoodRecords, saveMoodRecord, type MoodRecordSource, type MoodRecordV2 } from '../lib/mood/moodRecords';
@@ -176,6 +178,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     const initialRemainingSeconds = Math.max(0, initialRemainingSecondsProp ?? DEFAULT_DURATION_MINUTES * 60);
     const reviewParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
     const isReviewPreview = import.meta.env.DEV && Boolean(reviewParams?.get('preview'));
+    const [tourStep, setTourStep] = useState<FirstVisitTourStep | null>(() => (
+        getInitialTourStep(window.localStorage, isReviewPreview || Boolean(reviewParams?.get('review')))
+    ));
     const [localActiveScentId, setLocalActiveScentId] = useState<string | null>(null);
     const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
     const [pendingDurationMinutes, setPendingDurationMinutes] = useState(DEFAULT_DURATION_MINUTES);
@@ -240,6 +245,15 @@ const Dashboard: React.FC<DashboardProps> = ({
     const hasUnreadUpdate = reviewParams?.get('fixture') === 'unread'
         || Boolean(latestUpdateId && lastSeenUpdateId !== latestUpdateId);
 
+    const finishTour = () => {
+        window.localStorage.setItem(FIRST_VISIT_TOUR_STORAGE_KEY, 'completed');
+        setTourStep(null);
+    };
+
+    const advanceTour = (expected: FirstVisitTourStep) => {
+        setTourStep((current) => current === expected ? nextTourStep(current) : current);
+    };
+
     const clearStoryCloseTimeout = () => {
         if (storyCloseTimeoutRef.current !== null) {
             window.clearTimeout(storyCloseTimeoutRef.current);
@@ -259,6 +273,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         clearStoryCloseTimeout();
         setIsStoryClosing(false);
         setShowStory(true);
+        advanceTour('story');
     };
 
     const closeStorySheet = () => {
@@ -270,6 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setShowStory(false);
             setIsStoryClosing(false);
             storyCloseTimeoutRef.current = null;
+            advanceTour('story-close');
         }, STORY_SHEET_EXIT_MS);
     };
 
@@ -423,6 +439,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     const handleOpenScent = (scentId: string) => {
         setLocalActiveScentId(scentId);
         onScenarioClick(scentId);
+        advanceTour('scent');
     };
 
     const handleClosePlayer = () => {
@@ -439,6 +456,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         setSelectedMoodId(null);
         clearStoryCloseTimeout();
         onClosePlayer?.();
+        advanceTour('home');
     };
 
     const handleConfirmDuration = () => {
@@ -446,11 +464,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         setRemainingSeconds(pendingDurationMinutes * 60);
         completionNotifiedRef.current = false;
         setShowTimerSettings(false);
+        advanceTour('timer-settings');
     };
 
     const handleMoodSelect = (moodId: MoodId) => {
         setSelectedMoodId(moodId);
         setMoodRecordStep('context');
+        advanceTour('mood');
     };
 
     const handleSaveMoodRecord = (contextId: MoodContextId | null) => {
@@ -480,6 +500,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         setWeeklyMoodRecords(isReviewPreview ? [record, ...weeklyMoodRecords] : readMoodRecords());
         setFeedbackText(feedback.text);
         setMoodRecordStep('feedback');
+        advanceTour('context');
     };
 
     const handleContextSelect = (contextId: MoodContextId) => {
@@ -507,6 +528,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             setShowWeeklyMood(true);
         }
         setReturnToWeekly(false);
+        advanceTour('collect');
     };
 
     const openWeeklyMoodSheet = () => {
@@ -518,10 +540,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         setWeeklyMoodRecords(storedRecords);
         setSelectedWeekDayKey((latestRecordedDay ?? fallbackDay)?.key ?? null);
         setShowWeeklyMood(true);
+        advanceTour('weekly');
     };
 
     const closeWeeklyMoodSheet = () => {
         setShowWeeklyMood(false);
+        advanceTour('weekly-close');
     };
 
     const openManualMoodRecord = () => {
@@ -532,10 +556,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         setFeedbackText(null);
         setReturnToWeekly(true);
         setShowMoodRecorder(true);
+        advanceTour('record');
     };
 
     const openUpdateCenter = () => {
         setShowUpdateCenter(true);
+        if (tourStep === 'notification') finishTour();
         if (latestUpdateId && !isReviewPreview) {
             window.localStorage.setItem(UPDATE_READ_STORAGE_KEY, latestUpdateId);
             setLastSeenUpdateId(latestUpdateId);
@@ -603,6 +629,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                             <button
                                 type="button"
+                                data-tour-target="story"
                                 onClick={openStorySheet}
                                 className="mt-6 flex w-fit items-center gap-2 text-[15px] font-medium uppercase tracking-[0.16em] text-slate-600 transition hover:text-slate-900"
                             >
@@ -614,6 +641,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             aria-label="关闭播放页"
+                            data-tour-target="home"
                             onClick={handleClosePlayer}
                             className="rounded-full border border-slate-900/10 bg-slate-900/5 p-2 text-slate-800 transition hover:bg-slate-900/10 active:scale-95"
                         >
@@ -646,9 +674,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                             <button
                                 type="button"
                                 aria-label="设置燃香时间"
+                                data-tour-target="timer"
                                 onClick={() => {
                                     setPendingDurationMinutes(durationMinutes);
                                     setShowTimerSettings(true);
+                                    advanceTour('timer');
                                 }}
                                 className="p-3 text-slate-500 transition hover:text-slate-800 active:scale-95"
                             >
@@ -662,6 +692,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="absolute inset-0 z-30 flex items-end bg-[#fbf3f4]/50 backdrop-blur-[8px]" onClick={() => setShowTimerSettings(false)}>
                         <div
                             data-sheet-panel="timer-settings"
+                            data-tour-target="timer-settings"
                             className="w-full rounded-t-[2rem] border border-white/80 bg-[#fffaf8] px-6 pb-8 pt-6 shadow-[0_-28px_90px_rgba(94,69,72,0.12)]"
                             onClick={(event) => event.stopPropagation()}
                         >
@@ -737,6 +768,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     <button
                                         type="button"
                                         aria-label="关闭制香师说"
+                                        data-tour-target="story-close"
                                         onClick={closeStorySheet}
                                         className="rounded-full bg-slate-900/5 p-2 text-slate-700"
                                     >
@@ -787,6 +819,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         onCollect={handleCollectFeedback}
                     />
                 )}
+                {tourStep && <FirstVisitTour step={tourStep} onSkip={finishTour} />}
             </div>
         );
     }
@@ -820,6 +853,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             aria-label="查看这一周的心绪"
+                            data-tour-target="weekly"
                             onClick={openWeeklyMoodSheet}
                             className="inline-flex items-center gap-1.5 rounded-full border border-white/65 bg-white/45 px-3 py-2 text-[12px] font-medium text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
                         >
@@ -829,6 +863,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             aria-label="查看更新通知"
+                            data-tour-target="notification"
                             data-unread={hasUnreadUpdate ? 'true' : 'false'}
                             onClick={openUpdateCenter}
                             className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/65 bg-white/45 text-[#665f6c] shadow-[0_10px_30px_rgba(58,50,65,0.06)] backdrop-blur-xl transition hover:bg-white/70 active:scale-95"
@@ -858,6 +893,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         return (
                             <button
                                 key={scent.id}
+                                data-tour-target={scent.id === FRAGRANCE_LIST.find((item) => item.status !== 'locked')?.id ? 'scent' : undefined}
                                 type="button"
                                 disabled={isLocked}
                                 aria-label={isLocked ? `${scent.name}暂未开放` : `打开${scent.name}`}
@@ -942,6 +978,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 <button
                                     type="button"
                                     aria-label="关闭这一周的心绪"
+                                    data-tour-target="weekly-close"
                                     onClick={closeWeeklyMoodSheet}
                                     className="rounded-full bg-slate-900/5 p-2 text-slate-700 transition hover:bg-slate-900/10 active:scale-95"
                                 >
@@ -951,6 +988,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                             <button
                                 type="button"
+                                data-tour-target="record"
                                 onClick={openManualMoodRecord}
                                 className="mt-5 w-full rounded-full bg-[#6f5b68] px-5 py-3 text-sm font-medium text-white shadow-[0_12px_28px_rgba(111,91,104,0.18)] active:scale-[0.99]"
                             >
@@ -1133,6 +1171,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     onCollect={handleCollectFeedback}
                 />
             )}
+            {tourStep && <FirstVisitTour step={tourStep} onSkip={finishTour} />}
         </div>
     );
 };

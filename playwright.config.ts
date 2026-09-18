@@ -17,6 +17,13 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://localhost:5173',
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: 'http://localhost:5173',
+        localStorage: [{ name: 'xiaoyu_first_visit_tour_v1', value: 'completed' }],
+      }],
+    },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

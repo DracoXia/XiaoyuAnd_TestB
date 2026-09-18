@@ -55,7 +55,7 @@ const MoodRecorderSheet: React.FC<MoodRecorderSheetProps> = ({
               <X className="h-5 w-5" strokeWidth={1.6} />
             </button>
           </div>
-          <div aria-label="心情气泡" className="relative mx-auto mt-6 h-[17rem] max-w-[330px] overflow-visible">
+          <div aria-label="心情气泡" data-tour-target="mood" className="relative mx-auto mt-6 h-[17rem] max-w-[330px] overflow-visible">
             {MOOD_OPTIONS.map((mood) => (
               <button key={mood.id} type="button" aria-label={mood.label} onClick={() => onMoodSelect(mood.id)} className={`group absolute flex flex-col items-center gap-2 text-slate-500 outline-none transition duration-500 active:scale-95 ${mood.positionClassName}`}>
                 <span className={`block rounded-full border border-white/60 blur-[1px] shadow-xl transition duration-500 group-hover:scale-110 group-hover:blur-0 ${mood.orbClassName}`} />
@@ -72,7 +72,7 @@ const MoodRecorderSheet: React.FC<MoodRecorderSheetProps> = ({
           <button type="button" onClick={onBack} className="mb-5 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">返回</button>
           <h2 className="mt-6 text-2xl font-medium text-slate-800">这份感觉和什么有关？</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">选一个此刻最靠近的因素。</p>
-          <div className="mt-5 flex flex-wrap gap-2.5">
+          <div data-tour-target="context" className="mt-5 flex flex-wrap gap-2.5">
             {CONTEXT_OPTIONS.map((context) => (
               <button key={context.id} type="button" onClick={() => onContextSelect(context.id)} className="inline-flex items-center rounded-full border border-white/70 bg-white/58 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:border-[#d99b91]/40 hover:bg-white hover:text-[#7a4038] active:scale-95">
                 {context.label}
@@ -90,7 +90,7 @@ const MoodRecorderSheet: React.FC<MoodRecorderSheetProps> = ({
           </div>
           <h2 className="text-2xl font-medium text-slate-800">这一刻被记下来了</h2>
           <p className="mx-auto mt-5 max-w-sm text-[15px] leading-8 text-slate-600">{feedbackText}</p>
-          <button type="button" onClick={onCollect} className="mt-8 rounded-full bg-[#6f5b68] px-8 py-3 text-sm font-medium text-white shadow-[0_12px_28px_rgba(111,91,104,0.2)] active:scale-95">收好</button>
+          <button type="button" data-tour-target="collect" onClick={onCollect} className="mt-8 rounded-full bg-[#6f5b68] px-8 py-3 text-sm font-medium text-white shadow-[0_12px_28px_rgba(111,91,104,0.2)] active:scale-95">收好</button>
         </div>
       )}
     </div>
